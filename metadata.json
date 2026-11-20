@@ -1,0 +1,6 @@
+{
+  "name": "SS Homestay & Roomstay",
+  "description": "Sistem pengurusan dan tempahan rasmi SS Homestay & Roomstay, Kg Padang Enggang, Kota Bharu, Kelantan. Semak kalendar kekosongan, galeri, kemudahan, lokasi dan papan pemuka admin.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ss Homestay & Roomstay</title>
+<style>
+  /* --- GAYA KESELURUHAN --- */
+  body { 
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+    color: #333; 
+    margin: 0; 
+    padding: 10px; 
+    background-image: url('https://files.123freevectors.com/wp-content/original/155469-abstract-dark-grey-background-design.jpg');
+    background-size: cover; 
+    background-position: center; 
+    background-attachment: fixed;
+  }
+  
+  /* HEADER */
+  .header-utama {
+    background: #2c3e50; 
+    color: white; 
+    text-align: center; 
+    padding: 18px;
+    border-radius: 10px; 
+    margin-bottom: 20px; 
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+  }
+  .header-utama h1 {
+    margin: 0; 
+    font-size: 20px; 
+    text-transform: uppercase; 
+    letter-spacing: 1px; 
+  }
+ 
+  /* BUTANG MENU TABS */
+  .menu-container {
+    display: flex; 
+    flex-wrap: wrap; 
+    gap: 6px; 
+    margin-bottom: 20px; 
+    justify-content: center; 
+  }
+  .btn-menu { 
+      background: rgba(236, 240, 241, 0.9); 
+      color: #2c3e50; 
+      border: 2px solid #bdc3c7; 
+      padding: 6px 12px; 
+      border-radius: 5px; 
+      font-size: 13px; 
+      font-weight: bold; 
+      cursor: pointer;
+      transition: all 0.3s ease; 
+  }
+  .btn-menu:hover {
+    background: #bdc3c7; 
+  }
+  .btn-menu.aktif {
+    background: #27ae60; 
+    color: white; 
+    border-color: #27ae60; 
+  }
+  
+  /* Butang Khas Menu Pengisian */
+  .btn-admin-tab {
+    background: rgba(243, 156, 18, 0.9); 
+    color: white; 
+    border-color: #e67e22; 
+  }
+  .btn-admin-tab.aktif { 
+    background: #d35400; 
+    border-color: #e67e22; 
+  }
+ 
+  /* KANDUNGAN KOTAK (TAB CONTENT) */
+  .tab-content {
+    display: none; 
+    background: rgba(255, 255, 255, 0.95); 
+    padding: 20px;
+    border-radius: 10px; 
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1); 
+    border: 1px solid #eee; 
+    animation: fadeIn 0.5s; 
+  }
+  .tab-content.aktif {
+    display: block; 
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; } 
+    to { opacity: 1; } 
+  }
+  h3 { 
+    color: #2ecc71;
+    border-bottom: 2px solid #2ecc71; 
+    padding-bottom: 8px; 
+    margin-top: 0; 
+  }
+  h4 { 
+    color: #2980b9;
+    margin-bottom: 5px; 
+  } 
+ 
+  /* --- GAYA NAVIGASI KALENDAR MESRA TELEFON --- */
+  .calendar-header {
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    margin-bottom: 15px; 
+    gap: 5px;
+  }
+  .calendar-header button { 
+    padding: 10px 12px; 
+    cursor: pointer; 
+    border: none; 
+    background: #007bff; 
+    color: white; 
+    border-radius: 6px; 
+    font-weight: bold; 
+    font-size: 14px;
+    transition: 0.3s;
+  }
+  .calendar-header button:hover { background: #0056b3; }
+  
+  #papar-bulan-tahun {
+    font-size: 16px;
+    font-weight: bold;
+    color: white;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 8px 12px;
+    border-radius: 6px;
+    flex-grow: 1;
+  }
+
+  .btn-refresh-khas {
+    background: #28a745 !important;
+    width: 100%;
+    padding: 12px;
+    font-size: 15px;
+    border-radius: 6px;
+    border: none;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 10px;
+  }
+  .btn-refresh-khas:hover { background: #218838 !important; }
+  
+  .calendar-grid {
+    display: grid; 
+    grid-template-columns: repeat(7, 1fr); 
+    gap: 8px; 
+  }
+  .day-name {
+    font-weight: bold; 
+    background: #e9ecef; 
+    padding: 12px; 
+    border-radius: 4px;
+    color: #495057; 
+    text-align: center; 
+  }
+  
+  .day { 
+      min-height: 95px; 
+      padding: 5px; 
+      border: 1px solid #dee2e6; 
+      border-radius: 6px; 
+      background: #fff; 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: flex-start; 
+      font-size: 14px; 
+  }
+  .day-number {
+    font-weight: bold; 
+    margin-bottom: 5px; 
+    font-size: 16px; 
+  }
+  .day.booked {
+    background-color: #dc3545; 
+    color: white; 
+  }
+  .guest-info {
+    font-size: 9px; 
+    line-height: 1.2; 
+    text-align: center; 
+    word-break: break-word;
+    font-weight: normal; 
+    margin-top: 5px; 
+  }
+  .day.empty {
+    background: transparent; 
+    border: none; 
+  }
+  #loading { 
+    color: #fff; 
+    font-weight: bold; 
+    margin-bottom: 10px; 
+    text-align: center;
+    background: rgba(0,123,255,0.7);
+    padding: 6px;
+    border-radius: 4px;
+  }
+ 
+  /* --- GAYA ADMIN / PENGISIAN BOOKING --- */
+  .admin-box {
+    background: #fdf2e9; 
+    padding: 20px; 
+    border-radius: 5px; 
+    border-left: 5px solid #e67e22; 
+    max-width: 500px; 
+    margin: 20px auto; 
+    text-align: center; 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+  .input-laluan {
+    padding: 12px; 
+    width: 80%; 
+    border: 1px solid #ccc; 
+    border-radius: 5px;
+    margin-bottom: 10px; 
+    font-size: 16px; 
+    text-align: center; 
+  }
+  .btn-admin {
+    background: #007bff; 
+    color: white; 
+    padding: 10px 20px; 
+    border: none;
+    border-radius: 5px; 
+    font-weight: bold; 
+    font-size: 16px; 
+    cursor: pointer;
+    transition: 0.3s; 
+    margin: 5px;
+  }
+  .btn-admin:hover {
+    background: #0056b3; 
+  }
+  .btn-red {
+    background: #dc3545; 
+  }
+  .btn-red:hover { 
+    background: #c82333; 
+  }
+  .btn-green {
+    background: #28a745; 
+    width: 100%; 
+    margin-top: 15px; 
+    font-size: 16px; 
+    padding: 15px; 
+    border: none; 
+    border-radius: 6px; 
+    color: white; 
+    font-weight: bold;
+    cursor: pointer;
+  }
+  
+  .skala-flex {
+    display: flex; 
+    justify-content: space-between; 
+    margin: 15px auto; 
+    max-width: 400px; 
+  }
+  .skala-item {
+    text-align: center; 
+    font-weight: bold; 
+  }
+  .btn-hantar {
+    background: #2980b9; 
+    color: white; 
+    padding: 10px 20px; 
+    border: none;
+    border-radius: 5px; 
+    cursor: pointer; 
+    font-weight: bold; 
+    width: 100%; 
+    max-width: 400px; 
+    display: block; 
+    margin: auto;
+  }
+  .live-feedback {
+    background: #e8f8f5; 
+    padding: 15px; 
+    border-radius: 5px; 
+    margin-top: 20px;
+    border: 1px solid #1abc9c; 
+    max-width: 600px; 
+    margin: 20px auto; 
+  }
+  .grid-foto {
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px; 
+    max-height: 500px; 
+    overflow-y: auto; 
+    padding: 10px; 
+    background: rgba(249, 249, 249, 0.8); 
+    border-radius: 8px; 
+  }
+  .grid-foto img {
+    width: 100%; 
+    border-radius: 5px; 
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+  }
+  .iframe-box { 
+    width: 100%; 
+    border-radius: 6px; 
+    border: 1px solid #ccc; 
+    overflow: hidden; 
+    background: #f9f9f9; 
+    margin-bottom: 15px;
+  }
+  .video-container {
+    display: flex; 
+    flex-direction: column; 
+    gap: 15px; 
+  }
+  
+  /* Kotak Alert Kastam */
+  .custom-alert-overlay {
+    display: none;
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6); 
+    z-index: 1000; 
+    justify-content: center; 
+    align-items: center;
+  }
+  .custom-alert-box {
+    background: white;
+    padding: 25px; 
+    border-radius: 10px; 
+    max-width: 350px; 
+    width: 90%;
+    text-align: center; 
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2); 
+    animation: scaleIn 0.3s;
+  }
+  @keyframes scaleIn {
+    from { transform: scale(0.8); opacity: 0; } 
+    to { transform: scale(1); opacity: 1; } 
+  }
+  .custom-alert-btn {
+    background: #007bff; 
+    color: white; 
+    border: none; 
+    padding: 10px 20px;
+    border-radius: 5px; 
+    font-weight: bold; 
+    cursor: pointer; 
+    margin-top: 15px; 
+    width: 100%;
+  }
+</style>
+</head>
+<body>
+  
+  <div class="header-utama">
+    <h1>Ss Homestay & Roomstay</h1>
+  </div>
+ 
+  <div class="menu-container">
+    <button type="button" class="btn-menu aktif" onclick="bukaTab('utama', this)"> Utama</button>
+    <button type="button" class="btn-menu" onclick="bukaTab('pengenalan', this)"> Pengenalan</button>
+    <button type="button" class="btn-menu" onclick="bukaTab('keistimewaan', this)"> Info</button>
+    <button type="button" class="btn-menu" onclick="bukaTab('foto', this)"> Foto</button>
+    <button type="button" class="btn-menu" onclick="bukaTab('video', this)"> Video</button>
+    <button type="button" class="btn-menu" onclick="bukaTab('respon', this)"> Respons</button>
+    <button type="button" class="btn-menu" onclick="bukaTab('lokasi', this)"> Lokasi</button>
+    <button type="button" class="btn-menu" onclick="bukaTab('cetakan', this)"> Cetakan</button>
+    <button type="button" class="btn-menu" onclick="bukaTab('peraturan', this)"> Peraturan</button>
+    <button type="button" class="btn-menu" onclick="bukaTab('roomstay', this)">Roomstay</button>
+    <button type="button" class="btn-menu btn-admin-tab" onclick="bukaTab('admin', this)">Admin</button>
+  </div>
+ 
+  <div id="utama" class="tab-content aktif">
+    <h3 style="text-align: center;">📅 Kalendar Kekosongan</h3>
+    
+    <div style="background: grey; padding: 15px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 30px;">
+        <div id="loading">Loading...</div>
+        
+        <!-- Navigasi Bulan Mesra Telefon (Ganti Dropdown) -->
+        <div class="calendar-header">
+            <button type="button" onclick="ubahBulan(-1)">◀ Prev</button>
+            <div id="papar-bulan-tahun">Bulan / Tahun</div>
+            <button type="button" onclick="ubahBulan(1)">Next ▶</button>
+        </div>
+        
+        <button type="button" class="btn-refresh-khas" onclick="refreshData()">🔄 Refresh Kalendar</button>
+
+        <div class="calendar-grid" id="calendar" style="margin-top: 15px;">
+            <div class="day-name">A</div><div class="day-name">I</div><div class="day-name">S</div>
+            <div class="day-name">R</div><div class="day-name">K</div><div class="day-name">J</div><div class="day-name">S</div>
+        </div>
+    </div>
+    
+    <h3 style="margin-top: 40px; text-align: center;">⭐ Penilaian</h3>
+    <div class="skala-flex">
+      <div class="skala-item"><input type="radio" name="skala" value="1"><br>1</div>
+      <div class="skala-item"><input type="radio" name="skala" value="2"><br>2</div>
+      <div class="skala-item"><input type="radio" name="skala" value="3"><br>3</div>
+      <div class="skala-item"><input type="radio" name="skala" value="4"><br>4</div>
+      <div class="skala-item"><input type="radio" name="skala" value="5"><br>5</div>
+    </div>
+    <button type="button" class="btn-hantar" onclick="hantarSkala()">Hantar Penilaian</button>
+    
+    <div class="live-feedback" id="live-feedback" style="display:none;">
+      <h4 style="margin: 0 0 10px 0; color: #16a085;">Maklum Balas Terkini:</h4>
+      <div id="senarai-respon"></div>
+    </div>
+  </div>
+ 
+  <div id="pengenalan" class="tab-content">
+    <h3>🏠 Pengenalan</h3>
+    <p><b>Nama Homestay:</b> Ss Homestay</p>
+    <p><b>Alamat:</b> Lot 13085, Kg Padang Enggang, 15100 Kota Bharu, Kelantan.</p>
+    <p><b>Fungsi:</b> Nikmati penginapan yang selesa, tenang dan mesra keluarga di homestay kami. Terletak di lokasi strategik, sesuai untuk percutian, urusan kerja atau majlis keluarga.</p>
+    <p><b>Suasana:</b> InsyaAllah Selamat, Luas Parking untuk 8 Biji kereta</p>
+    <h4>3. Harga Roomstay</h4>
+    <ul style="font-size: 16px; line-height: 1.8;">
+     <li><b>Hari Biasa:</b> RM 300.00 / Malam</li>
+     <li><b>Musim Perayaan:</b> RM 350.00 / Malam</li>
+     <li><b>Promosi Ambil Bersekali Dengan Roomstay:</b> RM 400.00 / Malam</li>
+      <li style="color: #e74c3c; font-size: 14px;"><i>*Sila ubah kadar harga ini mengikut caj sebenar bilik anda.</i></li>
+    </ul>
+    <h3 style="color: #2980b9;">Sila Hubungi : 0169867367 (Pn. Hajah Sarina)</h3>
+  </div>
+ 
+  <div id="roomstay" class="tab-content">
+    <h3 style="text-align: center;">🛏️ Menu Roomstay</h3>
+    <h4>1. Pengenalan Roomstay</h4>
+    <p>Ss Roomstay menawarkan bilik persinggahan yang sangat selesa dan berpatutan.</p>
+    <h4>2. Keistimewaan Roomstay</h4>
+    <ul style="font-size: 16px; line-height: 1.8;">
+      <li>Bilik tidur yang selesa dan terjaga rapi.</li>
+      <li>Bilik dilengkapi Penyaman Udara (Air-cond).</li>
+      <li>Bilik mandi persendirian / Water Heater.</li>
+      <li>Katil saiz Queen yang empuk.</li>
+      <li>Parking kereta yang selamat dan luas.</li>
+    </ul>
+    <h4>3. Harga Roomstay</h4>
+    <ul style="font-size: 16px; line-height: 1.8;">
+     <li><b>Hari Biasa:</b> RM 130.00 / Malam</li>
+     <li><b>Musim Perayaan:</b> RM 150.00 / Malam</li>
+     <li><b>Promosi Ambil Bersekali Dengan Homestay:</b> RM 400.00 / Malam</li>
+    </ul>
+    <h4>📸 Tapak Galeri Roomstay (10 Gambar)</h4>
+    <div class="grid-foto">
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2026/04/57c0c4ad-d4ce-4cb0-a01e-611d80dde974.jpg" alt="Roomstay 1">
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2026/04/ffa8ff9e-5417-42a6-91ce-1990084275e2.jpg" alt="Roomstay 2">
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2026/04/8147aff1-4859-4a24-ba63-61144a7df322.jpg" alt="Roomstay 3">
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2026/04/9ab3d63b-48f3-499e-901e-6be42ee8c6f8.jpg" alt="Roomstay 4">
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2026/04/01327d22-d03b-44e3-8d42-b50041f8ebd8.jpg" alt="Roomstay 5">
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2026/04/edf59aaa-02b2-435e-a332-bba0a29e0699.jpg" alt="Roomstay 6">
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2026/04/d16c291b-614e-4c89-9008-99afb228df27.jpg" alt="Roomstay 7">
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2026/04/17d0ffd4-4a66-43a1-8a7d-bea8ede54747.jpg" alt="Roomstay 8">
+ <img src="https://sksi4com.wordpress.com/wp-content/uploads/2026/04/bcc072e4-2471-4b8f-b3c0-78797aa84048.png?w=768">
+
+    </div>
+  </div>
+ 
+  <div id="keistimewaan" class="tab-content">
+    <h3>✨ Keistimewaan Kami</h3>
+    <ul style="font-size: 16px; line-height: 1.8;">
+     <li>Mempunyai <b>3 Bilik</b> tidur yang luas.</li>
+     <li><b>Kesemua bilik</b> dilengkapi penyaman udara (Air-cond).</li>
+     <li>Kemudahan <b>Private Pool</b> (Kolam renang persendirian).</li>
+      <li>📺 Google TV 50'' & Netflix free access + Wifi.</li>
+      <li>🚘 Parking kereta berbumbung untuk 10 biji kereta.</li>
+      <li>✏️3 Bilik Tidur + 2 Bilik Air</li> 
+      <li>✏️3 Katil Queen + toto</li>
+      <li>🛌Bilik Tidur 1(Aircond) </li>
+      <li>🛌Bilik Tidur 2(Aircond)</li>
+      <li>🛌Bilik Tidur 3(Aircond) </li>
+      <li>✏️Dapur & Kelengkapan Peralatan Memasak</li>
+      <li>✏️ Penapis Air </li>
+      <li>✏️ Jug Kettle</li>
+      <li>✏️ Washing Machine</li>
+      <li>✏️ Peti Ais</li>
+      <li>✏️ Set BBQ</li>
+      <li>✏️ Private Pool Sesuai untuk keluarga</li>
+      <li>✏️ Extra Toto</li>
+      <li>✏️Iron & Iron Board</li>
+      <li>Water Heater</li>
+    </ul>
+ <img src="https://sksi4com.wordpress.com/wp-content/uploads/2026/04/image_9a22e31f.jpg"> 
+  </div>
+ 
+  <div id="foto" class="tab-content">
+    <h3>📸 Galeri Foto Homestay</h3>
+    <div class="grid-foto">
+     <img src="https://sksi4com.wordpress.com/wp-content/uploads/2025/01/9ddae795-64c6-4acd-8428-84b3dfd39273uu.jpg?w=2500&h=" alt="KOLAM RENANG">
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2025/01/7ea984b6-3f18-424a-bd05-9d6ce93acdb0.jpg?w=2500&h=" alt="Rumah 2">
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2025/01/bbc221e6-13b2-40b1-bf22-2898da828d9b.jpg?w=2500&h=" alt="Rumah 3"> 
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2025/01/20250413_184430.jpg?w=1440" alt="4">
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2025/01/d58b0f28-e395-4a43-9cd3-ed75dc932f37.jpg?w=2500&h==" alt="Rumah 5">
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2025/01/93f283dd-500f-408c-a271-c240c57d634e.jpg?w=2500&h=" alt="Rumah 6"> 
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2025/01/a15c5061-5755-49da-815e-f677ae697c6a.png" alt="7">
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2025/01/70f40c16-1a78-4466-afb1-7cd9ef1d87a9.jpg?w=2500&h=" alt="Rumah 8">
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2025/01/whatsapp-image-2026-04-11-at-5.21.13-am-1.jpeg" alt="Rumah 9"> 
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2025/01/9e414f38-dcb2-4e20-8a97-c757f6792ccd.jpg?w=2500&h=" alt="10">
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2025/01/img-20250330-wa0054-1.jpg" alt="Rumah 11">
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2025/01/20250502_104833-1.jpg" alt="Rumah 12"> 
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2025/01/whatsapp-image-2026-04-11-at-5.21.12-am-1.jpeg" alt="Rumah 13"> 
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2025/01/img-20250330-wa0049-1.jpg" alt="Rumah 13"> 
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2025/01/20250502_104953.png" alt="Rumah 12"> 
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2025/01/6cb4db19-3ff4-4ede-86aa-f25b5d510477.jpg" alt="Rumah 13"> 
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2025/01/20250502_104815.png" alt="Rumah 13"> 
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2025/01/7f73b518-dac8-43f5-b718-cc322859ce12.jpg" alt="Rumah 13"> 
+ <img src="https://sksi4com.wordpress.com/wp-content/uploads/2026/04/image_9a22e31f.jpg"> 
+    </div>
+  </div>
+ 
+ <div id="video" class="tab-content">
+    <h3>🎥 Galeri Video Homestay</h3>
+    <div class="video-container">
+      
+      <!-- Video Baharu (YouTube Embed) -->
+      <div class="iframe-box">
+        <iframe width="100%" height="500" src="https://youtube.com/shorts/tq5trg7ObvU" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+      </div>
+      
+          <div class="iframe-box">
+        <iframe width="100%" height="500" src="https://youtube.com/shorts/eNkWbs19tRs" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+      </div>
+    </div>
+  </div>
+ 
+  <div id="respon" class="tab-content">
+    <h3>💬 Respon & Testimoni</h3>
+    <p>Maklum balas cemerlang dari pelanggan kami sentiasa menjadi keutamaan. Berikut adalah sebahagian daripada ulasan tetamu kami:</p>
+    
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2026/04/img-20250831-wa0004.jpg" alt="Komen 1">
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2026/04/screenshot_20250401_131016_whatsapp.jpg?w=768" alt="Komen 2">
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2026/04/screenshot_20250925_162457_chrome.jpg?w=768" alt="Komen 1">
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2026/04/screenshot_20250405_142559_whatsapp.jpg?w=768" alt="Komen 3">
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2026/04/km.jpg?w=768" alt="Komen 1">
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2026/04/screenshot_20250604_105506_whatsapp.jpg" alt="Komen 4">
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2026/04/screenshot_20250823_154859_whatsapp1.jpg?w=768" alt="Komen 5">
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2026/04/screenshot_20250915_205155_whatsapp.jpg?w=768" alt="Komen 6">
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2026/04/screenshot_20250919_092843_whatsapp.jpg?w=768" alt="Komen 1">
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2026/04/screenshot_20250925_162312_chrome.jpg?w=768" alt="Komen 7">
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2026/04/screenshot_20250925_162333_chrome.jpg?w=768" alt="Komen 1">
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2026/04/screenshot_20250925_162358_chrome.jpg?w=768" alt="Komen 8">
+      <img src="https://sksi4com.wordpress.com/wp-content/uploads/2026/04/km1.jpg?w=768" alt="Komen 8">
+  </div>
+ 
+  <div id="lokasi" class="tab-content">
+    <h3>📍 Peta Lokasi</h3>
+    <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3967.374544967811!2d102.2439067!3d6.080129400000001!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31b6a50007ca8f19%3A0x77cdd0d3dcbdcbd8!2sSS%20Homestay!5e0!3m2!1sen!2smy!4v1775604476114!5m2!1sen!2smy" width="100%" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade" class="iframe-box"></iframe>
+  </div>
+ 
+  <div id="cetakan" class="tab-content">
+    <h3>🖨️ Menu Cetakan</h3>
+    
+    <div style="padding: 15px; background: #e8f8f5; border-left: 5px solid #1abc9c; border-radius: 5px; margin-bottom: 20px;">
+      <h4 style="color: #2c3e50; margin-top: 0;">Borang Cetakan Tempahan</h4>
+      <p style="font-size: 15px;">Sila isi borang di bawah untuk tujuan rekod atau cetakan rasmi anda. Anda juga boleh klik butang di bawah untuk membuka borang di tetingkap baharu.</p>
+      
+      <a href="https://docs.google.com/forms/d/e/1FAIpQLScRi3LDs5sMF9DMGRUFvDiYlweQ5Nib-3s_r9eQS3jeKPlGtQ/viewform" target="_blank" style="display:block; background:#1abc9c; color:white; padding:12px 20px; text-decoration:none; border-radius:5px; font-weight:bold; font-size:16px; text-align:center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom:20px; transition: 0.3s;">
+          📝 Buka Borang Cetakan (Paparan Penuh)
+      </a>
+
+      <iframe src="https://docs.google.com/forms/d/e/1FAIpQLScRi3LDs5sMF9DMGRUFvDiYlweQ5Nib-3s_r9eQS3jeKPlGtQ/viewform?embedded=true" width="100%" height="800" frameborder="0" marginheight="0" marginwidth="0" style="border: 1px solid #ccc; border-radius: 8px;">Memuatkan borang...</iframe>
+    </div>
+
+    <div style="padding: 15px; background: #f4f6f7; border-left: 5px solid #16a085; border-radius: 5px;">
+      <h4 style="color: #2c3e50; margin-top: 0;">Cetakan Skrin Semasa</h4>
+      <p style="font-size: 15px;">Anda boleh terus mencetak paparan skrin atau butiran halaman ini sebagai rujukan tempahan segera.</p>
+      <button type="button" class="btn-hantar btn-cetak" style="background: #16a085;" onclick="window.print()">🖨️ Cetak Halaman / Tempahan Ini</button>
+    </div>
+  </div>
+ 
+  <div id="peraturan" class="tab-content">
+    <h3>📜 Peraturan Homestay</h3>
+    <ul style="font-size: 16px; line-height: 1.8; padding-right: 20px;">
+      <li>Waktu Masuk (Check-in): 3:00 Petang</li>
+      <li>Waktu Keluar (Check-out): 12:00 Tengah hari</li>
+     <li>Dilarang merokok di dalam kawasan rumah.</li>
+     <li>Ditegah sama sekali membawa masuk makanan yang tidak halal.</li>
+      <li>Sila pakai pakaian renang yang sesuai dan bilas badan sebelum masuk ke kolam renang.</li>
+     <li>Peralatan hendaklah digunakan dengan cermat. Sila laporkan kerosakan dengan kadar segera.</li>
+    </ul>
+  </div>
+ 
+  <div id="admin" class="tab-content">
+    <h3 style="text-align: center; color: #17a2b8; border-bottom: 2px solid #17a2b8;">🔐 Menu Admin & Pengisian Booking</h3>
+ 
+    <div class="admin-box" id="booking-login-box">
+        <p style="margin-top:0; font-weight:bold; color:#333; font-size:18px;">Pengesahan Admin</p>
+        <p style="font-size: 14px; color:#555;">Sila masukkan kata laluan untuk membuka menu admin.</p>
+        
+        <input type="password" id="booking-pass-input" class="input-laluan" placeholder="******" onkeypress="handleEnterBooking(event)">
+        <br>
+        <button class="btn-admin" onclick="checkBookingPass()">Sahkan</button>
+        <p id="booking-error-msg" style="color:red; display:none; margin-top: 15px; font-weight: bold;">Kata laluan salah!</p>
+    </div>
+ 
+    <div id="booking-admin-box" style="display: none; text-align: center; padding: 10px;">
+        <h4 style="color: #28a745; margin-bottom: 20px;">✅ Akses Berjaya! Papan Pemuka Admin</h4>
+        
+        <div style="margin-bottom: 25px; background: #f4f6f7; padding: 20px; border-radius: 8px; border-left: 5px solid #8e44ad;">
+            <h4 style="color: #8e44ad; margin-top: 0;">📱 Sistem Pengurusan AppSheet</h4>
+            <p style="font-size: 14px; color: #555;">Klik butang di bawah untuk membuka aplikasi pengurusan homestay sepenuhnya.</p>
+            <a href="https://www.appsheet.com/start/119031a9-780e-4ed7-b2f8-7b903c36531c" target="_blank" style="display:inline-block; background:#8e44ad; color:white; padding:15px 30px; text-decoration:none; border-radius:8px; font-weight:bold; font-size:16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: 0.3s;">Buka Aplikasi AppSheet</a>
+        </div>
+        
+        <div style="margin-bottom: 30px;">
+             <a href="https://linktr.ee/SSHOMESTAY" target="_blank" style="display:inline-block; background:#2c3e50; color:white; padding:10px 20px; text-decoration:none; border-radius:8px; font-weight:bold; font-size:14px;">🔗 Buka Pautan Pengurusan Lama (Linktree)</a>
+        </div>
+ 
+        <hr style="border: 1px solid #ddd; margin: 20px 0;">
+ 
+        <h4 style="color: #007bff; text-align: left;">📝 Borang Pengisian Tempahan Tetamu</h4>
+        <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSenk3vO-Y3eP-zKg5odaQp3hqNKsC5dQrVZ2DX0Cav-d8VrxQ/viewform?embedded=true" width="100%" height="800" frameborder="0" marginheight="0" marginwidth="0" style="border: 1px solid #ccc; border-radius: 8px;">Memuatkan borang...</iframe>
+        
+        <button class="btn-green" onclick="refreshData()">🔄 Kemaskini Kalendar Selepas Submit Form</button>
+        <button class="btn-admin btn-red" style="width:100%; margin-top:10px; padding:15px;" onclick="logoutBooking()">Tutup Papan Pemuka (Log Keluar)</button>
+    </div>
+  </div>
+ 
+  <div id="customAlertBox" class="custom-alert-overlay">
+      <div class="custom-alert-box">
+          <p id="customAlertText" style="color: #333; font-size: 16px;"></p>
+          <button class="custom-alert-btn" onclick="tutupAlert()">OK</button>
+      </div>
+  </div>
+ 
+  <script>
+    function tunjukAlert(mesej) {
+       document.getElementById('customAlertText').innerText = mesej;
+       document.getElementById('customAlertBox').style.display = 'flex';
+    }
+ 
+    function tutupAlert() {
+       document.getElementById('customAlertBox').style.display = 'none';
+    }
+
+    function bukaTab(idTab, elemenButang) {
+      var tabs = document.getElementsByClassName("tab-content");
+      for (var i = 0; i < tabs.length; i++) {
+       tabs[i].classList.remove("aktif");
+      }
+      var butang = document.getElementsByClassName("btn-menu");
+      for (var i = 0; i < butang.length; i++) {
+       butang[i].classList.remove("aktif");
+      }
+      document.getElementById(idTab).classList.add("aktif");
+      elemenButang.classList.add("aktif");
+    }
+ 
+    function hantarSkala() {
+      var pilihan = document.querySelector('input[name="skala"]:checked');
+      if (pilihan) {
+        var bintang = "⭐".repeat(pilihan.value);
+        var tarikh = new Date().toLocaleDateString("ms-MY");
+        var rekodBaru = document.createElement("p");
+       rekodBaru.innerHTML = `<b>${tarikh}:</b> ${bintang} (${pilihan.value}/5)`;
+       rekodBaru.style.borderBottom = "1px solid #ccc";
+       rekodBaru.style.paddingBottom = "5px";
+       document.getElementById("senarai-respon").prepend(rekodBaru);
+       document.getElementById("live-feedback").style.display = "block";
+       pilihan.checked = false;
+      } else {
+       tunjukAlert("Sila pilih skala 1 hingga 5 terlebih dahulu.");
+      }
+    }
+ 
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyi-V49qZXiNC2gzLGJi0LB9ImEFBgITZb1eAxg1HpTHQVIrxp1tp7NfEJ2BgAyN7VSTg/exec";
+    
+    let bookings = [];
+    let currentDate = new Date();
+    
+    const monthNames = ["Januari", "Februari", "Mac", "April", "Mei", "Jun", "Julai", "Ogos", "September", "Oktober", "November", "Disember"];
+ 
+    // Fungsi menukar bulan menggunakan butang Next / Prev (Sangat lancar di telefon)
+    function ubahBulan(arah) {
+        currentDate.setMonth(currentDate.getMonth() + arah);
+        renderCalendar();
+    }
+ 
+    async function loadData() {
+        document.getElementById('loading').style.display = "block";
+        document.getElementById('loading').innerText = "Loading...";
+        
+        try {
+            let res = await fetch(SCRIPT_URL, {
+                method: 'GET',
+                redirect: 'follow',
+                headers: {
+                    "Content-Type": "text/plain;charset=utf-8",
+                }
+            });
+            
+            if (!res.ok) {
+                throw new Error("Ralat capaian server");
+            }
+            
+            bookings = await res.json();
+            document.getElementById('loading').style.display = "none";
+            renderCalendar();
+            
+        } catch (e) {
+            console.error(e);
+            document.getElementById('loading').innerHTML = "<span style='color:red;'>Gagal memuat turun data. Sila semak internet anda dan refresh halaman.</span>";
+        }
+    }
+ 
+    function renderCalendar() {
+        const cal = document.getElementById("calendar");
+        const dayNames = cal.querySelectorAll('.day-name');
+        cal.innerHTML = '';
+        dayNames.forEach(d => cal.appendChild(d));
+ 
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        
+        // Kemaskini paparan teks bulan dan tahun di tengah
+        document.getElementById("papar-bulan-tahun").innerText = `${monthNames[month]} ${year}`;
+ 
+        const firstDay = new Date(year, month, 1).getDay();
+        const totalDays = new Date(year, month + 1, 0).getDate();
+ 
+        for (let i = 0; i < firstDay; i++) {
+            let div = document.createElement("div");
+            div.className = "day empty";
+            cal.appendChild(div);
+        }
+ 
+        for (let d = 1; d <= totalDays; d++) {
+            let div = document.createElement("div");
+            div.className = "day";
+           
+            let dayNum = document.createElement("div");
+            dayNum.className = "day-number";
+            dayNum.innerText = d;
+            div.appendChild(dayNum);
+ 
+            let dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            
+            let bookingsOnThisDay = getBookingForDate(dateStr);
+            if (bookingsOnThisDay) {
+                div.classList.add("booked");
+               
+                let infoContainer = document.createElement("div");
+                infoContainer.style.width = "100%";
+               
+                bookingsOnThisDay.forEach(booking => {
+                    let status = "";
+                    let inDate = new Date(booking.masuk).toDateString();
+                    let outDate = new Date(booking.keluar).toDateString();
+                    let currentLoopDate = new Date(dateStr).toDateString();
+ 
+                    if (currentLoopDate === inDate && currentLoopDate === outDate) {
+                        status = "(In/Out)";
+                    } else if (currentLoopDate === inDate) {
+                        status = "(M)";
+                    } else if (currentLoopDate === outDate) {
+                        status = "(K)";
+                    }
+ 
+                    let pilihanInap = booking.pilihan || booking.jenis || booking.unit || booking.kategori || booking.penginapan || booking.homestay_roomstay || "Penginapan";
+                   
+                    let badgeColor = "#17a2b8"; 
+                    let textUpper = pilihanInap.toUpperCase();
+                    if (textUpper.includes("ROOMSTAY")) { badgeColor = "#28a745"; } 
+                    else if (textUpper.includes("HOMESTAY")) { badgeColor = "#8e44ad"; } 
+                    else if (textUpper.includes("KEDUA")) { badgeColor = "#e67e22"; } 
+                   
+                    let badgeHtml = `<div style="background:${badgeColor}; color:white; padding:2px 3px; border-radius:3px; display:inline-block; font-size:8px; font-weight:bold; margin:2px 0;">${pilihanInap}</div>`;
+ 
+                    let infoText = document.createElement("div");
+                    infoText.className = "guest-info";
+                    infoText.innerHTML = `<strong>${booking.nama}</strong><br>${badgeHtml}<br><span style="font-size:8px; color:yellow;">${status}</span>`;
+                    infoText.style.borderBottom = "1px dotted rgba(255,255,255,0.5)";
+                    infoText.style.paddingBottom = "4px";
+                    infoText.style.marginBottom = "4px";
+                   
+                    infoContainer.appendChild(infoText);
+                });
+               
+                if (infoContainer.lastChild) {
+                    infoContainer.lastChild.style.borderBottom = "none";
+                    infoContainer.lastChild.style.marginBottom = "0";
+                }
+ 
+                div.appendChild(infoContainer);
+            }
+           
+            cal.appendChild(div);
+        }
+    }
+ 
+    function getBookingForDate(dateStr) {
+        let results = [];
+        let checkDate = new Date(dateStr);
+        checkDate.setHours(0, 0, 0, 0);
+ 
+        bookings.forEach(booking => {
+            let inDate = new Date(booking.masuk);
+            inDate.setHours(0, 0, 0, 0);
+           
+            let outDate = new Date(booking.keluar);
+            outDate.setHours(0, 0, 0, 0);
+ 
+            if (checkDate >= inDate && checkDate <= outDate) {
+                results.push(booking);
+            }
+        });
+ 
+        return results.length > 0 ? results : null;
+    }
+ 
+    function checkBookingPass() {
+        var inputPass = document.getElementById("booking-pass-input").value;
+        if (inputPass === "677397" || inputPass === "123456") {
+            document.getElementById("booking-login-box").style.display = "none";
+            document.getElementById("booking-admin-box").style.display = "block";
+            document.getElementById("booking-error-msg").style.display = "none";
+        } else {
+            document.getElementById("booking-error-msg").style.display = "block";
+        }
+    }
+ 
+    function handleEnterBooking(event) {
+        if (event.key === "Enter") {
+            checkBookingPass();
+        }
+    }
+ 
+    function logoutBooking() {
+        document.getElementById("booking-login-box").style.display = "block";
+        document.getElementById("booking-admin-box").style.display = "none";
+        document.getElementById("booking-pass-input").value = "";
+    }
+ 
+    function refreshData() {
+        loadData();
+        tunjukAlert("Data kalendar sedang dikemaskini. Ini mungkin mengambil sedikit masa.");
+    }
+ 
+    window.onload = function() {
+        loadData();
+    };
+  </script>
+</body>
+</html>
