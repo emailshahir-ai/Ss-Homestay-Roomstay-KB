@@ -512,8 +512,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           <div className="rounded-xl border border-purple-200 bg-purple-50/50 p-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-4">
               <img
-                src="/ss-homestay-icon-512.png"
-                alt="Ikon Segi Empat Sama SS Homestay (512x512)"
+                src="/ss-homestay-icon-512.png?v=2"
+                alt="Ikon Segi Empat Sama SS Homestay & Roomstay (512x512)"
                 className="h-16 w-16 rounded-xl border border-slate-200 bg-white object-contain p-1 shrink-0"
               />
               <div>

@@ -153,9 +153,9 @@ export const WhatsAppShareCard: React.FC = () => {
               {/* WhatsApp Link Preview Box */}
               <div className="flex items-stretch gap-3 overflow-hidden rounded-lg bg-black/5 p-2">
                 <img
-                  src="/assets/aistudio/header_a3bc0ce2.jpg"
-                  alt="SS Homestay & Roomstay Kota Bharu"
-                  className="h-16 w-24 rounded-md bg-white object-cover shrink-0 border border-slate-200"
+                  src="/ss-homestay-icon-512.jpg?v=2"
+                  alt="Logo SS Homestay & Roomstay"
+                  className="h-16 w-16 rounded-md bg-white object-contain p-0.5 shrink-0 border border-slate-200"
                 />
                 <div className="min-w-0 flex-1 flex flex-col justify-center">
                   <p className="truncate text-xs font-bold text-slate-900">
@@ -179,12 +179,12 @@ export const WhatsAppShareCard: React.FC = () => {
           </div>
 
           <div className="rounded-lg border border-amber-200 bg-amber-50/70 p-3 text-xs text-amber-900 space-y-1">
-            <p className="font-bold">Cara terbaik supaya logo dipaparkan di WhatsApp:</p>
+            <p className="font-bold">Cara pastikan logo 100% keluar di WhatsApp:</p>
             <p>
-              1. Terbitkan laman dengan capaian awam, kemudian kongsi URL awam sebenar. WhatsApp perlu boleh membuka laman itu untuk membaca gambar dan keterangan pratonton.
+              1. Klik butang <strong>Deploy</strong> (ikon roket) di AI Studio untuk dapatkan pautan awam <strong>Cloud Run (.run.app)</strong> (tetapkan capaian <em>Public</em>).
             </p>
             <p>
-              2. Untuk paparan logo yang paling pasti, tekan <strong>Kongsi Logo + Pautan</strong> menggunakan telefon. Kaedah ini menghantar gambar logo bersama pautan terus ke WhatsApp.
+              2. Atau tekan butang <strong>Kongsi Logo + Pautan</strong> di sebelah pada telefon anda untuk menghantar gambar logo bersama pautan terus ke WhatsApp serta-merta.
             </p>
           </div>
         </div>
