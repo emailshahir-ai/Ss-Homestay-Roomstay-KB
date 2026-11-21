@@ -3,6 +3,7 @@ import {
   Check,
   Copy,
   ExternalLink,
+  Globe,
   MapPin,
   Phone,
   Printer,
@@ -201,7 +202,7 @@ export function App() {
   const displayOwnerPhone = formatDisplayPhone(savedOwnerPhone) || CONTACT_INFO.phoneDisplay;
 
   const whatsappUrl = `https://wa.me/${savedOwnerPhone}?text=${encodeURIComponent(
-    'Assalamualaikum Pn. Hajah Sarina, saya berminat untuk bertanya tentang kekosongan SS Homestay & Roomstay.'
+    'Assalamualaikum Pn. Hajjah Sarina, saya berminat untuk bertanya tentang kekosongan SS Homestay & Roomstay.'
   )}`;
 
   return (
@@ -213,7 +214,7 @@ export function App() {
           <button
             type="button"
             onClick={() => setActiveTab('utama')}
-            className="font-display text-base sm:text-lg font-extrabold tracking-tight text-slate-900 whitespace-nowrap shrink-0 text-left"
+            className="font-display text-sm min-[380px]:text-base sm:text-lg font-extrabold tracking-tight text-slate-900 whitespace-nowrap shrink-0 text-left"
           >
             SS Homestay &amp; Roomstay
           </button>
@@ -244,13 +245,23 @@ export function App() {
             ))}
           </nav>
 
-          {/* Zone 3: 1 primary action */}
-          <div className="flex items-center shrink-0">
+          {/* Zone 3: Website Globe icon + primary action */}
+          <div className="flex items-center gap-2 shrink-0">
+            <a
+              href={CONTACT_INFO.websiteUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Buka Laman Web Rasmi SS Homestay & Roomstay"
+              title="Laman Web Rasmi SS Homestay & Roomstay"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-purple-200 bg-purple-50 text-purple-700 shadow-xs transition-all hover:border-purple-700 hover:bg-purple-700 hover:text-white active:scale-95 focus-visible:outline-2 focus-visible:outline-purple-600 shrink-0"
+            >
+              <Globe className="h-4.5 w-4.5" aria-hidden="true" />
+            </a>
             <a
               href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-xs sm:text-sm font-semibold text-white transition-colors hover:bg-emerald-700 whitespace-nowrap shrink-0"
+              className="inline-flex items-center gap-1.5 sm:gap-2 rounded-lg bg-emerald-600 px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-white transition-colors hover:bg-emerald-700 whitespace-nowrap shrink-0"
             >
               <Phone className="h-3.5 w-3.5" />
               <span>Hubungi Kami</span>
@@ -269,7 +280,7 @@ export function App() {
               openLightbox(
                 [
                   {
-                    src: '/assets/aistudio/image_06d6f58a.png',
+                    src: '/assets/aistudio/header_a3bc0ce2.jpg',
                     alt: 'SS Homestay & Roomstay — Kampung Padang Enggang, Kota Bharu, Kelantan',
                   },
                 ],
@@ -280,18 +291,18 @@ export function App() {
             aria-label="Besarkan banner SS Homestay & Roomstay"
           >
             <SafeImage
-              src="/assets/aistudio/image_06d6f58a.png"
+              src="/assets/aistudio/header_a3bc0ce2.jpg"
               alt="SS Homestay & Roomstay — Kampung Padang Enggang, Kota Bharu, Kelantan"
               className="block w-full h-auto object-contain"
             />
           </button>
 
-          {/* Tulisan Berjalan Dari Kiri Ke Kanan Di Bawah Foto Header */}
+          {/* Tulisan Berjalan Dari Kanan Ke Kiri Di Bawah Foto Header */}
           <div
-            className="marquee-wrapper overflow-hidden border-t border-emerald-700/20 bg-emerald-700 py-2.5 text-white"
+            className="marquee-wrapper overflow-hidden border-t border-purple-800/30 bg-purple-700 py-1.5 leading-none text-white"
             aria-label="SELAMAT DATANG KE PORTAL Ss HOMESTAY & ROOMSTAY"
           >
-            <span className="animate-marquee-ltr font-display text-xs sm:text-sm font-bold tracking-wider">
+            <span className="animate-marquee-rtl font-display text-[11px] sm:text-xs font-bold tracking-wider">
               SELAMAT DATANG KE PORTAL Ss HOMESTAY &amp; ROOMSTAY
             </span>
           </div>
@@ -364,6 +375,7 @@ export function App() {
             <WhatsAppBookingForm
               savedOwnerPhone={savedOwnerPhone}
               prefilledCheckIn={prefilledCheckIn}
+              bookings={bookings}
             />
 
             {/* Penilaian Tetamu */}

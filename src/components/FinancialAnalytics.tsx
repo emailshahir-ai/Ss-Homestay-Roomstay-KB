@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   Download,
   Eye,
+  FileText,
   Loader2,
   MessageCircle,
   Plus,
@@ -19,6 +20,7 @@ import {
 } from 'lucide-react';
 import { MONTH_NAMES, SCRIPT_URL } from '../data/homestayData';
 import { FinancialRecord, SheetMeta, formatRM } from '../utils/sheetParser';
+import { generateFinancialPdf } from '../utils/financialPdf';
 import { FinancialPrintMode, FinancialPrintReport } from './FinancialPrintReport';
 import {
   buildAdminConfirmationMessage,
@@ -647,6 +649,16 @@ export const FinancialAnalytics: React.FC<FinancialAnalyticsProps> = ({
     }, 120);
   };
 
+  const handleDownloadPdf = (mode: FinancialPrintMode, periodOverride?: string) => {
+    const targetPeriod = periodOverride !== undefined ? periodOverride : printPeriod;
+    generateFinancialPdf({
+      records: allRecords,
+      mode,
+      periodKey: targetPeriod,
+      sheetMeta: meta,
+    });
+  };
+
   const handleSelectPrintScopeType = (scopeType: 'semua' | 'bulan') => {
     if (scopeType === 'semua') {
       setPrintPeriod('semua');
@@ -707,7 +719,17 @@ export const FinancialAnalytics: React.FC<FinancialAnalyticsProps> = ({
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition-colors whitespace-nowrap shrink-0"
             >
               <Download className="h-3.5 w-3.5" />
-              <span>Muat Turun CSV</span>
+              <span>CSV</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleDownloadPdf('keseluruhan', selectedMonth)}
+              disabled={monthScopedRecords.length === 0}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-purple-700 px-3 py-2 text-xs font-semibold text-white hover:bg-purple-800 disabled:opacity-50 transition-colors whitespace-nowrap shrink-0"
+            >
+              <FileText className="h-3.5 w-3.5" />
+              <span>Muat Turun PDF</span>
             </button>
 
             <button
@@ -722,18 +744,18 @@ export const FinancialAnalytics: React.FC<FinancialAnalyticsProps> = ({
           </div>
         </div>
 
-        {/* Dedicated Print Center: Wang Masuk / Wang Keluar / Keseluruhan × Mengikut Bulan / Keseluruhan */}
+        {/* Dedicated Print & PDF Center: Wang Masuk / Wang Keluar / Keseluruhan × Mengikut Bulan / Keseluruhan */}
         <div className="rounded-xl border border-slate-200 bg-white p-5 no-print">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <Printer className="h-4 w-4 text-slate-700 shrink-0" />
+                <FileText className="h-4 w-4 text-purple-700 shrink-0" />
                 <h4 className="text-sm font-bold text-slate-900">
-                  Cetak Laporan Analisis Kewangan
+                  Muat Turun PDF &amp; Cetak Laporan Analisis Kewangan
                 </h4>
               </div>
               <p className="mt-1 text-xs text-slate-500">
-                Tempoh cetakan:{' '}
+                Tempoh laporan:{' '}
                 <span className="font-semibold text-slate-800">
                   {printPeriod === 'semua'
                     ? 'Keseluruhan (Semua Bulan)'
@@ -796,56 +818,108 @@ export const FinancialAnalytics: React.FC<FinancialAnalyticsProps> = ({
             </div>
           </div>
 
+          {/* Direct PDF Download Buttons */}
+          <div className="mt-4 border-t border-slate-100 pt-4">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              Muat Turun Fail PDF (Format A4)
+            </p>
+            <div className="grid gap-2.5 sm:grid-cols-3">
+              <button
+                type="button"
+                onClick={() => handleDownloadPdf('masuk')}
+                disabled={printPeriodStats.masukCount === 0}
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-300 bg-emerald-600 px-3.5 py-2.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors whitespace-nowrap shrink-0"
+              >
+                <FileText className="h-3.5 w-3.5 shrink-0" />
+                <span>PDF Wang Masuk</span>
+                <span className="font-mono-num text-[11px] text-emerald-100">
+                  ({printPeriodStats.masukCount})
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleDownloadPdf('keluar')}
+                disabled={printPeriodStats.keluarCount === 0}
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-rose-300 bg-rose-600 px-3.5 py-2.5 text-xs font-semibold text-white hover:bg-rose-700 disabled:opacity-50 transition-colors whitespace-nowrap shrink-0"
+              >
+                <FileText className="h-3.5 w-3.5 shrink-0" />
+                <span>PDF Wang Keluar</span>
+                <span className="font-mono-num text-[11px] text-rose-100">
+                  ({printPeriodStats.keluarCount})
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleDownloadPdf('keseluruhan')}
+                disabled={printPeriodStats.totalCount === 0}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-purple-700 px-3.5 py-2.5 text-xs font-semibold text-white hover:bg-purple-800 disabled:opacity-50 transition-colors whitespace-nowrap shrink-0"
+              >
+                <FileText className="h-3.5 w-3.5 shrink-0" />
+                <span>PDF Keseluruhan</span>
+                <span className="font-mono-num text-[11px] text-purple-200">
+                  ({printPeriodStats.totalCount})
+                </span>
+              </button>
+            </div>
+          </div>
+
           {/* 4 Print Action Buttons */}
-          <div className="mt-4 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4 border-t border-slate-100 pt-4">
-            <button
-              type="button"
-              onClick={() => handleTriggerPrint('masuk')}
-              disabled={printPeriodStats.masukCount === 0}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50/70 px-3.5 py-2.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 disabled:opacity-50 transition-colors whitespace-nowrap shrink-0"
-            >
-              <Printer className="h-3.5 w-3.5 text-emerald-700 shrink-0" />
-              <span>Cetak Wang Masuk</span>
-              <span className="font-mono-num text-[11px] text-emerald-700/80">
-                ({printPeriodStats.masukCount})
-              </span>
-            </button>
+          <div className="mt-4 border-t border-slate-100 pt-4">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              Cetak Terus &amp; Pratonton
+            </p>
+            <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+              <button
+                type="button"
+                onClick={() => handleTriggerPrint('masuk')}
+                disabled={printPeriodStats.masukCount === 0}
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50/70 px-3.5 py-2.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 disabled:opacity-50 transition-colors whitespace-nowrap shrink-0"
+              >
+                <Printer className="h-3.5 w-3.5 text-emerald-700 shrink-0" />
+                <span>Cetak Wang Masuk</span>
+                <span className="font-mono-num text-[11px] text-emerald-700/80">
+                  ({printPeriodStats.masukCount})
+                </span>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => handleTriggerPrint('keluar')}
-              disabled={printPeriodStats.keluarCount === 0}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-rose-200 bg-rose-50/70 px-3.5 py-2.5 text-xs font-semibold text-rose-800 hover:bg-rose-100 disabled:opacity-50 transition-colors whitespace-nowrap shrink-0"
-            >
-              <Printer className="h-3.5 w-3.5 text-rose-700 shrink-0" />
-              <span>Cetak Wang Keluar</span>
-              <span className="font-mono-num text-[11px] text-rose-700/80">
-                ({printPeriodStats.keluarCount})
-              </span>
-            </button>
+              <button
+                type="button"
+                onClick={() => handleTriggerPrint('keluar')}
+                disabled={printPeriodStats.keluarCount === 0}
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-rose-200 bg-rose-50/70 px-3.5 py-2.5 text-xs font-semibold text-rose-800 hover:bg-rose-100 disabled:opacity-50 transition-colors whitespace-nowrap shrink-0"
+              >
+                <Printer className="h-3.5 w-3.5 text-rose-700 shrink-0" />
+                <span>Cetak Wang Keluar</span>
+                <span className="font-mono-num text-[11px] text-rose-700/80">
+                  ({printPeriodStats.keluarCount})
+                </span>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => handleTriggerPrint('keseluruhan')}
-              disabled={printPeriodStats.totalCount === 0}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-3.5 py-2.5 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-50 transition-colors whitespace-nowrap shrink-0"
-            >
-              <Printer className="h-3.5 w-3.5 shrink-0" />
-              <span>Cetak Keseluruhan</span>
-              <span className="font-mono-num text-[11px] text-slate-300">
-                ({printPeriodStats.totalCount})
-              </span>
-            </button>
+              <button
+                type="button"
+                onClick={() => handleTriggerPrint('keseluruhan')}
+                disabled={printPeriodStats.totalCount === 0}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-3.5 py-2.5 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-50 transition-colors whitespace-nowrap shrink-0"
+              >
+                <Printer className="h-3.5 w-3.5 shrink-0" />
+                <span>Cetak Keseluruhan</span>
+                <span className="font-mono-num text-[11px] text-slate-300">
+                  ({printPeriodStats.totalCount})
+                </span>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setShowPrintPreview(true)}
-              disabled={allRecords.length === 0}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition-colors whitespace-nowrap shrink-0"
-            >
-              <Eye className="h-3.5 w-3.5 text-slate-600 shrink-0" />
-              <span>Pratonton Penyata A4</span>
-            </button>
+              <button
+                type="button"
+                onClick={() => setShowPrintPreview(true)}
+                disabled={allRecords.length === 0}
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition-colors whitespace-nowrap shrink-0"
+              >
+                <Eye className="h-3.5 w-3.5 text-slate-600 shrink-0" />
+                <span>Pratonton Penyata A4</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1598,7 +1672,15 @@ export const FinancialAnalytics: React.FC<FinancialAnalyticsProps> = ({
                 </select>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleDownloadPdf(printMode, printPeriod)}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-purple-700 px-4 py-2 text-xs font-semibold text-white hover:bg-purple-800 transition-colors whitespace-nowrap shrink-0"
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                  <span>Muat Turun PDF</span>
+                </button>
                 <button
                   type="button"
                   onClick={() => window.print()}

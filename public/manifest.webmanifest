@@ -1,0 +1,17 @@
+{
+  "name": "SS Homestay & Roomstay",
+  "short_name": "SS Homestay",
+  "description": "Sistem pengurusan dan tempahan rasmi SS Homestay & Roomstay, Kg Padang Enggang, Kota Bharu, Kelantan.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#7e22ce",
+  "icons": [
+    {
+      "src": "/ss-homestay-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

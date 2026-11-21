@@ -53,7 +53,7 @@ export const DAY_SHORT_NAMES = ['Ahd', 'Isn', 'Sel', 'Rab', 'Kha', 'Jum', 'Sab']
 
 export const CONTACT_INFO = {
   brand: 'SS Homestay & Roomstay',
-  owner: 'Pn. Hajah Sarina',
+  owner: 'Pn. Hajjah Sarina',
   phoneDisplay: '016-986 7367',
   phoneRaw: '60169867367',
   address: 'Lot 13085, Kg Padang Enggang, 15100 Kota Bharu, Kelantan.',
@@ -68,6 +68,7 @@ export const CONTACT_INFO = {
     'https://docs.google.com/forms/d/e/1FAIpQLSenk3vO-Y3eP-zKg5odaQp3hqNKsC5dQrVZ2DX0Cav-d8VrxQ/viewform?embedded=true',
   appsheetUrl: 'https://www.appsheet.com/start/119031a9-780e-4ed7-b2f8-7b903c36531c',
   linktreeUrl: 'https://linktr.ee/SSHOMESTAY',
+  websiteUrl: 'https://ss-homestay-roomstay-kb.ai.studio',
 };
 
 export const HOMESTAY_RATES = [

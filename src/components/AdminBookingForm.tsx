@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import {
   AlertCircle,
-  AlertTriangle,
+  Ban,
   CheckCircle2,
   Loader2,
   MessageCircle,
@@ -17,6 +17,7 @@ import {
   formatDisplayPhone,
   normalizeMalaysiaPhone,
 } from '../utils/whatsapp';
+import { findOverlappingBookings, getBookingUnitRaw } from '../utils/bookingOverlap';
 
 interface AdminBookingFormProps {
   bookings: BookingRecord[];
@@ -147,21 +148,10 @@ export const AdminBookingForm: React.FC<AdminBookingFormProps> = ({
   // Check overlapping bookings for selected dates & unit
   const overlappingBookings = useMemo(() => {
     if (!tarikhMasuk || !tarikhKeluar || nights <= 0) return [];
-    return bookings.filter((b) => {
-      if (!b.masuk || !b.keluar) return false;
-      // Overlap check: stay nights [masuk, keluar) intersect
-      const dateOverlaps = tarikhMasuk < b.keluar && tarikhKeluar > b.masuk;
-      if (!dateOverlaps) return false;
-      const bUnit = (b.pilihan || '').toUpperCase();
-      if (selectedCode === 'H+R') return true;
-      if (bUnit.includes('KEDUA') || bUnit.includes('H+R') || (bUnit.includes('HOMESTAY') && bUnit.includes('ROOMSTAY'))) {
-        return true;
-      }
-      if (selectedCode === 'H') return bUnit.includes('HOMESTAY') || bUnit === 'H';
-      if (selectedCode === 'R') return bUnit.includes('ROOMSTAY') || bUnit === 'R';
-      return false;
-    });
+    return findOverlappingBookings(bookings, tarikhMasuk, tarikhKeluar, selectedCode);
   }, [bookings, tarikhMasuk, tarikhKeluar, nights, selectedCode]);
+
+  const hasOverlap = overlappingBookings.length > 0;
 
   const handleSelectUnit = (code: 'H' | 'R' | 'H+R') => {
     setSelectedCode(code);
@@ -220,6 +210,12 @@ export const AdminBookingForm: React.FC<AdminBookingFormProps> = ({
     }
     if (nights <= 0) {
       setErrorMsg('Tarikh Keluar mestilah selepas Tarikh Masuk.');
+      return;
+    }
+    if (overlappingBookings.length > 0) {
+      setErrorMsg(
+        'Tarikh yang dipilih telah ditempah dan bertindan dengan tempahan sedia ada. Tempahan tidak boleh disimpan.'
+      );
       return;
     }
     if (effectiveJumlah < 0) {
@@ -519,7 +515,11 @@ export const AdminBookingForm: React.FC<AdminBookingFormProps> = ({
               required
               value={tarikhMasuk}
               onChange={(e) => handleCheckInChange(e.target.value)}
-              className="mt-1.5 w-full rounded-lg border border-slate-300 px-3.5 py-2.5 font-mono-num text-sm text-slate-900 focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-700/15"
+              className={`mt-1.5 w-full rounded-lg border px-3.5 py-2.5 font-mono-num text-sm text-slate-900 focus:outline-none focus:ring-2 ${
+                hasOverlap
+                  ? 'border-rose-500 bg-rose-50/40 focus:border-rose-600 focus:ring-rose-600/20'
+                  : 'border-slate-300 focus:border-emerald-700 focus:ring-emerald-700/15'
+              }`}
             />
           </div>
 
@@ -534,23 +534,42 @@ export const AdminBookingForm: React.FC<AdminBookingFormProps> = ({
               min={tarikhMasuk ? addDaysIso(tarikhMasuk, 1) : undefined}
               value={tarikhKeluar}
               onChange={(e) => handleCheckOutChange(e.target.value)}
-              className="mt-1.5 w-full rounded-lg border border-slate-300 px-3.5 py-2.5 font-mono-num text-sm text-slate-900 focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-700/15"
+              className={`mt-1.5 w-full rounded-lg border px-3.5 py-2.5 font-mono-num text-sm text-slate-900 focus:outline-none focus:ring-2 ${
+                hasOverlap
+                  ? 'border-rose-500 bg-rose-50/40 focus:border-rose-600 focus:ring-rose-600/20'
+                  : 'border-slate-300 focus:border-emerald-700 focus:ring-emerald-700/15'
+              }`}
             />
           </div>
         </div>
 
-        {/* Overlap Warning */}
-        {overlappingBookings.length > 0 && (
-          <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
-            <div>
-              <p className="font-semibold">Amaran Pertindihan Tarikh ({selectedUnit.title})</p>
-              <p className="mt-0.5 text-amber-800">
-                Tarikh ini bertindih dengan tempahan sedia ada:{' '}
-                {overlappingBookings
-                  .map((b) => `${b.nama} (${isoToDisplay(b.masuk)}–${isoToDisplay(b.keluar)})`)
-                  .join(', ')}
+        {/* Blocking Overlap Alert: Telah Ditempah */}
+        {hasOverlap && (
+          <div
+            role="alert"
+            className="flex items-start gap-2.5 rounded-lg border border-rose-300 bg-rose-50 p-3.5 text-xs text-rose-900"
+          >
+            <Ban className="h-4 w-4 shrink-0 text-rose-600 mt-0.5" />
+            <div className="space-y-1">
+              <p className="text-sm font-bold text-rose-800">
+                Tarikh Telah Ditempah ({selectedUnit.displayLabel})
+              </p>
+              <p className="text-rose-800">
+                Tarikh yang dipilih bertindan dengan tempahan sedia ada:{' '}
+                <span className="font-semibold">
+                  {overlappingBookings
+                    .map((b) => {
+                      const unitText = getBookingUnitRaw(b);
+                      return `${b.nama}${unitText ? ` · ${unitText}` : ''} (${isoToDisplay(
+                        b.masuk
+                      )}–${isoToDisplay(b.keluar)})`;
+                    })
+                    .join(', ')}
+                </span>
                 .
+              </p>
+              <p className="font-semibold text-rose-700">
+                Tempahan tidak boleh disimpan. Sila pilih tarikh atau unit lain.
               </p>
             </div>
           </div>
@@ -691,13 +710,22 @@ export const AdminBookingForm: React.FC<AdminBookingFormProps> = ({
 
           <button
             type="submit"
-            disabled={submitting}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-700 px-6 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60 transition-colors"
+            disabled={submitting || hasOverlap}
+            className={`inline-flex items-center justify-center gap-2 rounded-lg px-6 py-2.5 text-sm font-semibold transition-colors ${
+              hasOverlap
+                ? 'cursor-not-allowed bg-rose-100 text-rose-700 border border-rose-300'
+                : 'bg-emerald-700 text-white hover:bg-emerald-800 disabled:opacity-60'
+            }`}
           >
             {submitting ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
                 <span>Menyimpan Tempahan...</span>
+              </>
+            ) : hasOverlap ? (
+              <>
+                <Ban className="h-4 w-4" />
+                <span>Tarikh Telah Ditempah — Tidak Boleh Disimpan</span>
               </>
             ) : (
               <>

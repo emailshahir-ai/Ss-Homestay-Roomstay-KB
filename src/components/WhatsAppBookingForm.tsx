@@ -1,22 +1,35 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { MessageCircle } from 'lucide-react';
+import { Ban, MessageCircle } from 'lucide-react';
 import {
   buildGuestBookingMessage,
   buildWhatsAppUrl,
   formatDisplayPhone,
 } from '../utils/whatsapp';
-import { formatRM } from '../utils/sheetParser';
+import type { BookingRecord } from './BookingCalendar';
+import {
+  BookingUnitCode,
+  findOverlappingBookings,
+  getBookingUnitRaw,
+} from '../utils/bookingOverlap';
 
 interface WhatsAppBookingFormProps {
   savedOwnerPhone: string;
   prefilledCheckIn?: string | null;
+  bookings?: BookingRecord[];
 }
 
-const UNIT_OPTIONS = [
-  { id: 'Homestay (3 Bilik + Private Pool)', label: 'Homestay (3 Bilik + Private Pool)', rate: 300 },
-  { id: 'Roomstay', label: 'Roomstay (Bilik Persinggahan)', rate: 130 },
-  { id: 'Kombo Homestay + Roomstay', label: 'Kombo Homestay + Roomstay', rate: 400 },
+const UNIT_OPTIONS: { id: string; label: string; rate: number; code: BookingUnitCode }[] = [
+  { id: 'Homestay (3 Bilik + Private Pool)', label: 'Homestay (3 Bilik + Private Pool)', rate: 300, code: 'H' },
+  { id: 'Roomstay', label: 'Roomstay (Bilik Persinggahan)', rate: 130, code: 'R' },
+  { id: 'Homestay & Roomstay', label: 'Homestay & Roomstay (Kombo)', rate: 400, code: 'H+R' },
 ];
+
+function formatIsoDisplay(iso: string): string {
+  if (!iso) return '-';
+  const parts = iso.split('-');
+  if (parts.length !== 3) return iso;
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+}
 
 function getTodayIso(): string {
   const now = new Date();
@@ -37,6 +50,7 @@ function addDaysIso(iso: string, days: number): string {
 export const WhatsAppBookingForm: React.FC<WhatsAppBookingFormProps> = ({
   savedOwnerPhone,
   prefilledCheckIn,
+  bookings = [],
 }) => {
   const [nama, setNama] = useState('');
   const [telefon, setTelefon] = useState('');
@@ -67,7 +81,19 @@ export const WhatsAppBookingForm: React.FC<WhatsAppBookingFormProps> = ({
   const selectedUnitObj = UNIT_OPTIONS.find((u) => u.id === unit) || UNIT_OPTIONS[0];
   const estimatedTotal = nights > 0 ? nights * selectedUnitObj.rate : 0;
 
-  const isValid = nama.trim().length >= 2 && Boolean(tarikhMasuk) && Boolean(tarikhKeluar) && nights > 0;
+  const overlappingBookings = useMemo(() => {
+    if (!tarikhMasuk || !tarikhKeluar || nights <= 0) return [];
+    return findOverlappingBookings(bookings, tarikhMasuk, tarikhKeluar, selectedUnitObj.code);
+  }, [bookings, tarikhMasuk, tarikhKeluar, nights, selectedUnitObj.code]);
+
+  const hasOverlap = overlappingBookings.length > 0;
+
+  const isValid =
+    !hasOverlap &&
+    nama.trim().length >= 2 &&
+    Boolean(tarikhMasuk) &&
+    Boolean(tarikhKeluar) &&
+    nights > 0;
 
   const waUrl = useMemo(() => {
     const message = buildGuestBookingMessage({
@@ -104,6 +130,11 @@ export const WhatsAppBookingForm: React.FC<WhatsAppBookingFormProps> = ({
   };
 
   const handleClickSubmit = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (hasOverlap) {
+      e.preventDefault();
+      setFormError('Tarikh yang dipilih telah ditempah dan bertindan. Sila pilih tarikh atau unit lain.');
+      return;
+    }
     if (!nama.trim() || nama.trim().length < 2) {
       e.preventDefault();
       setFormError('Sila masukkan nama penuh anda terlebih dahulu.');
@@ -124,7 +155,7 @@ export const WhatsAppBookingForm: React.FC<WhatsAppBookingFormProps> = ({
       id="borang-whatsapp-tempahan"
       className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6"
     >
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between border-b border-slate-200 pb-4">
+      <div className="border-b border-slate-200 pb-4">
         <div>
           <h2 className="text-xl font-bold tracking-tight text-slate-900">
             Borang Tempahan WhatsApp
@@ -134,15 +165,63 @@ export const WhatsAppBookingForm: React.FC<WhatsAppBookingFormProps> = ({
             <span className="font-mono-num font-semibold text-slate-900">{displayOwnerPhone}</span>.
           </p>
         </div>
-        {estimatedTotal > 0 && (
-          <div className="text-left sm:text-right">
-            <p className="text-xs text-slate-500">Anggaran Kadar Hari Biasa</p>
-            <p className="font-mono-num text-lg font-bold text-emerald-700">
-              {formatRM(estimatedTotal)}{' '}
-              <span className="text-xs font-normal text-slate-500">({nights} malam)</span>
+
+        {/* Paparan Harga Homestay & Roomstay */}
+        <div className="mt-3.5 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+          <button
+            type="button"
+            onClick={() => setUnit(UNIT_OPTIONS[0].id)}
+            className={`flex items-center justify-between gap-2 rounded-lg border px-3.5 py-2.5 text-left transition-colors ${
+              unit === UNIT_OPTIONS[0].id
+                ? 'border-emerald-600 bg-emerald-50/80'
+                : 'border-slate-200 bg-slate-50/70 hover:border-slate-300'
+            }`}
+          >
+            <div>
+              <p className="text-xs font-bold text-slate-900">Homestay</p>
+              <p className="text-[11px] text-slate-500">3 Bilik Air-Cond + Private Pool</p>
+            </div>
+            <p className="font-mono-num text-sm sm:text-base font-extrabold text-emerald-700 whitespace-nowrap shrink-0">
+              RM300<span className="text-xs font-semibold text-slate-600">/Malam</span>
             </p>
-          </div>
-        )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setUnit(UNIT_OPTIONS[1].id)}
+            className={`flex items-center justify-between gap-2 rounded-lg border px-3.5 py-2.5 text-left transition-colors ${
+              unit === UNIT_OPTIONS[1].id
+                ? 'border-purple-600 bg-purple-50/80'
+                : 'border-slate-200 bg-slate-50/70 hover:border-slate-300'
+            }`}
+          >
+            <div>
+              <p className="text-xs font-bold text-slate-900">Roomstay</p>
+              <p className="text-[11px] text-slate-500">Bilik Persinggahan Selesa</p>
+            </div>
+            <p className="font-mono-num text-sm sm:text-base font-extrabold text-purple-700 whitespace-nowrap shrink-0">
+              RM130<span className="text-xs font-semibold text-slate-600">/Malam</span>
+            </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setUnit(UNIT_OPTIONS[2].id)}
+            className={`sm:col-span-2 lg:col-span-1 flex items-center justify-between gap-2 rounded-lg border px-3.5 py-2.5 text-left transition-colors ${
+              unit === UNIT_OPTIONS[2].id
+                ? 'border-amber-600 bg-amber-50/80'
+                : 'border-slate-200 bg-slate-50/70 hover:border-slate-300'
+            }`}
+          >
+            <div>
+              <p className="text-xs font-bold text-slate-900">Homestay &amp; Roomstay</p>
+              <p className="text-[11px] text-slate-500">Pakej Kombo Lengkap</p>
+            </div>
+            <p className="font-mono-num text-sm sm:text-base font-extrabold text-amber-700 whitespace-nowrap shrink-0">
+              RM400<span className="text-xs font-semibold text-slate-600">/Malam</span>
+            </p>
+          </button>
+        </div>
       </div>
 
       <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -204,7 +283,11 @@ export const WhatsAppBookingForm: React.FC<WhatsAppBookingFormProps> = ({
             type="date"
             value={tarikhMasuk}
             onChange={(e) => handleCheckInChange(e.target.value)}
-            className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 font-mono-num text-sm text-slate-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20"
+            className={`mt-1.5 w-full rounded-lg border px-3 py-2 font-mono-num text-sm text-slate-900 focus:outline-none focus:ring-2 ${
+              hasOverlap
+                ? 'border-rose-500 bg-rose-50/40 focus:border-rose-600 focus:ring-rose-600/20'
+                : 'border-slate-300 focus:border-emerald-600 focus:ring-emerald-600/20'
+            }`}
           />
         </div>
 
@@ -221,7 +304,11 @@ export const WhatsAppBookingForm: React.FC<WhatsAppBookingFormProps> = ({
               setTarikhKeluar(e.target.value);
               if (formError) setFormError(null);
             }}
-            className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 font-mono-num text-sm text-slate-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20"
+            className={`mt-1.5 w-full rounded-lg border px-3 py-2 font-mono-num text-sm text-slate-900 focus:outline-none focus:ring-2 ${
+              hasOverlap
+                ? 'border-rose-500 bg-rose-50/40 focus:border-rose-600 focus:ring-rose-600/20'
+                : 'border-slate-300 focus:border-emerald-600 focus:ring-emerald-600/20'
+            }`}
           />
         </div>
 
@@ -256,7 +343,36 @@ export const WhatsAppBookingForm: React.FC<WhatsAppBookingFormProps> = ({
         </div>
       </div>
 
-      {formError && (
+      {hasOverlap && (
+        <div
+          role="alert"
+          className="mt-4 flex items-start gap-2.5 rounded-lg border border-rose-300 bg-rose-50 p-3.5 text-xs text-rose-900"
+        >
+          <Ban className="h-4 w-4 shrink-0 text-rose-600 mt-0.5" />
+          <div className="space-y-1">
+            <p className="text-sm font-bold text-rose-800">Tarikh Telah Ditempah</p>
+            <p className="text-rose-800">
+              Tarikh yang dipilih bertindan dengan rekod tempahan sedia ada:{' '}
+              <span className="font-semibold">
+                {overlappingBookings
+                  .map((b) => {
+                    const unitText = getBookingUnitRaw(b) || 'Penginapan';
+                    return `${unitText} (${formatIsoDisplay(b.masuk)}–${formatIsoDisplay(
+                      b.keluar
+                    )})`;
+                  })
+                  .join(', ')}
+              </span>
+              .
+            </p>
+            <p className="font-semibold text-rose-700">
+              Tempahan tidak boleh diteruskan bagi tarikh ini. Sila pilih tarikh atau pilihan penginapan lain.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {formError && !hasOverlap && (
         <p className="mt-3 text-sm font-medium text-rose-600" role="alert">
           {formError}
         </p>
@@ -266,16 +382,27 @@ export const WhatsAppBookingForm: React.FC<WhatsAppBookingFormProps> = ({
         <p className="text-xs text-slate-500">
           Waktu Masuk: 3:00 Petang · Waktu Keluar: 12:00 Tengah hari · Kadar musim perayaan mungkin berbeza.
         </p>
-        <a
-          href={isValid && waUrl ? waUrl : '#borang-whatsapp-tempahan'}
-          target={isValid && waUrl ? '_blank' : undefined}
-          rel={isValid && waUrl ? 'noopener noreferrer' : undefined}
-          onClick={handleClickSubmit}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 whitespace-nowrap shrink-0"
-        >
-          <MessageCircle className="h-4 w-4" />
-          <span>Hantar Tempahan ke WhatsApp</span>
-        </a>
+        {hasOverlap ? (
+          <button
+            type="button"
+            disabled
+            className="inline-flex cursor-not-allowed items-center justify-center gap-2 rounded-lg border border-rose-300 bg-rose-100 px-5 py-2.5 text-sm font-semibold text-rose-700 whitespace-nowrap shrink-0"
+          >
+            <Ban className="h-4 w-4" />
+            <span>Tarikh Telah Ditempah</span>
+          </button>
+        ) : (
+          <a
+            href={isValid && waUrl ? waUrl : '#borang-whatsapp-tempahan'}
+            target={isValid && waUrl ? '_blank' : undefined}
+            rel={isValid && waUrl ? 'noopener noreferrer' : undefined}
+            onClick={handleClickSubmit}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 whitespace-nowrap shrink-0"
+          >
+            <MessageCircle className="h-4 w-4" />
+            <span>Hantar Tempahan ke WhatsApp</span>
+          </a>
+        )}
       </div>
     </section>
   );
