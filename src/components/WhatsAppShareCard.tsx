@@ -153,9 +153,9 @@ export const WhatsAppShareCard: React.FC = () => {
               {/* WhatsApp Link Preview Box */}
               <div className="flex items-stretch gap-3 overflow-hidden rounded-lg bg-black/5 p-2">
                 <img
-                  src="/ss-homestay-icon-512.jpg"
-                  alt="Logo SS Homestay & Roomstay"
-                  className="h-16 w-16 rounded-md bg-white object-contain p-0.5 shrink-0 border border-slate-200"
+                  src="/assets/aistudio/header_a3bc0ce2.jpg"
+                  alt="SS Homestay & Roomstay Kota Bharu"
+                  className="h-16 w-24 rounded-md bg-white object-cover shrink-0 border border-slate-200"
                 />
                 <div className="min-w-0 flex-1 flex flex-col justify-center">
                   <p className="truncate text-xs font-bold text-slate-900">
