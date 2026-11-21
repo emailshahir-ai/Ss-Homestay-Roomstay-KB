@@ -101,39 +101,36 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setTimeout(() => setPhoneSavedMsg(null), 3000);
   };
 
-  const handleDownloadSquareIcon = (format: 'png' | 'jpeg') => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      const size = 512;
-      const canvas = document.createElement('canvas');
-      canvas.width = size;
-      canvas.height = size;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, size, size);
-      ctx.drawImage(img, 0, 0, size, size);
+  const handleDownloadSquareIcon = async (format: 'png' | 'jpeg') => {
+    const ext = format === 'png' ? 'png' : 'jpg';
+    const fileUrl =
+      format === 'png'
+        ? `/ss-homestay-icon-512.png?v=${Date.now()}`
+        : `/ss-homestay-logo-v3.jpg?v=${Date.now()}`;
+    const fileName =
+      format === 'png'
+        ? 'logo-ss-homestay-512x512.png'
+        : 'logo-ss-homestay-512x512-28kb.jpg';
 
-      const mime = format === 'png' ? 'image/png' : 'image/jpeg';
-      const ext = format === 'png' ? 'png' : 'jpg';
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) return;
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `logo-ss-homestay-512x512.${ext}`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          setTimeout(() => URL.revokeObjectURL(url), 1000);
-        },
-        mime,
-        0.95
-      );
-    };
-    img.src = `/ss-homestay-icon-512.png?v=${Date.now()}`;
+    try {
+      const res = await fetch(fileUrl);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch {
+      const link = document.createElement('a');
+      link.href = fileUrl;
+      link.download = `logo-ss-homestay-512x512.${ext}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   const sortedBookings = useMemo(() => {
@@ -512,7 +509,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           <div className="rounded-xl border border-purple-200 bg-purple-50/50 p-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-4">
               <img
-                src="/ss-homestay-icon-512.png?v=2"
+                src="/ss-homestay-logo-v3.jpg"
                 alt="Ikon Segi Empat Sama SS Homestay & Roomstay (512x512)"
                 className="h-16 w-16 rounded-xl border border-slate-200 bg-white object-contain p-1 shrink-0"
               />
@@ -521,26 +518,26 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   Logo Ikon Aplikasi Segi Empat Sama (512×512)
                 </h3>
                 <p className="mt-0.5 text-xs sm:text-sm text-slate-600">
-                  Dijana terus sebagai fail imej tulen <span className="font-mono-num font-semibold text-slate-800">512×512 (1:1)</span> dalam format <strong>PNG</strong> atau <strong>JPG</strong> untuk dimuat naik ke ruangan <strong>Icon</strong>.
+                  Fail imej segi empat sama <span className="font-mono-num font-semibold text-slate-800">512×512 (1:1)</span> sedia dimuat turun — format <strong>JPG (~28 KB)</strong> sesuai untuk WhatsApp &amp; ruangan <strong>Icon</strong>.
                 </p>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2 shrink-0">
               <button
                 type="button"
-                onClick={() => handleDownloadSquareIcon('png')}
+                onClick={() => handleDownloadSquareIcon('jpeg')}
                 className="inline-flex items-center justify-center gap-2 rounded-lg bg-purple-700 px-4 py-2.5 text-xs sm:text-sm font-semibold text-white hover:bg-purple-800 transition-colors whitespace-nowrap shrink-0"
               >
                 <Download className="h-4 w-4" />
-                <span>Muat Turun PNG (512×512)</span>
+                <span>Muat Turun JPG (512×512 • 28 KB)</span>
               </button>
               <button
                 type="button"
-                onClick={() => handleDownloadSquareIcon('jpeg')}
+                onClick={() => handleDownloadSquareIcon('png')}
                 className="inline-flex items-center justify-center gap-2 rounded-lg border border-purple-300 bg-white px-4 py-2.5 text-xs sm:text-sm font-semibold text-purple-800 hover:bg-purple-50 transition-colors whitespace-nowrap shrink-0"
               >
                 <Download className="h-4 w-4" />
-                <span>Muat Turun JPG (512×512)</span>
+                <span>Muat Turun PNG (512×512)</span>
               </button>
             </div>
           </div>

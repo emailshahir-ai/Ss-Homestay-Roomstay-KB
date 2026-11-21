@@ -8,7 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const DEFAULT_PUBLIC_ORIGIN = 'https://ss-homestay-roomstay-kb.ai.studio';
-const OG_IMAGE_PATH = '/ss-homestay-logo-v2.jpg';
+const OG_IMAGE_PATH = '/ss-homestay-logo-v3.jpg';
 
 function sanitizeHost(rawHost: string): string {
   return rawHost.replace(/[^a-zA-Z0-9.:-]/g, '');
