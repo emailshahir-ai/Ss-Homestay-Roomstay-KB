@@ -179,12 +179,12 @@ export const WhatsAppShareCard: React.FC = () => {
           </div>
 
           <div className="rounded-lg border border-amber-200 bg-amber-50/70 p-3 text-xs text-amber-900 space-y-1">
-            <p className="font-bold">Cara pastikan logo 100% keluar di WhatsApp:</p>
+            <p className="font-bold">Cara terbaik supaya logo dipaparkan di WhatsApp:</p>
             <p>
-              1. Klik butang <strong>Deploy</strong> (ikon roket) di AI Studio untuk dapatkan pautan awam <strong>Cloud Run (.run.app)</strong> (tetapkan capaian <em>Public</em>).
+              1. Terbitkan laman dengan capaian awam, kemudian kongsi URL awam sebenar. WhatsApp perlu boleh membuka laman itu untuk membaca gambar dan keterangan pratonton.
             </p>
             <p>
-              2. Atau tekan butang <strong>Kongsi Logo + Pautan</strong> di sebelah pada telefon anda untuk menghantar gambar logo bersama pautan terus ke WhatsApp serta-merta.
+              2. Untuk paparan logo yang paling pasti, tekan <strong>Kongsi Logo + Pautan</strong> menggunakan telefon. Kaedah ini menghantar gambar logo bersama pautan terus ke WhatsApp.
             </p>
           </div>
         </div>
