@@ -89,7 +89,7 @@ export const WhatsAppShareCard: React.FC = () => {
 
     if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
       try {
-        const res = await fetch('/ss-homestay-icon-512.jpg');
+        const res = await fetch('/ss-homestay-logo-v2.jpg');
         const blob = await res.blob();
         const logoFile = new File([blob], 'logo-ss-homestay.jpg', { type: 'image/jpeg' });
 
@@ -153,7 +153,7 @@ export const WhatsAppShareCard: React.FC = () => {
               {/* WhatsApp Link Preview Box */}
               <div className="flex items-stretch gap-3 overflow-hidden rounded-lg bg-black/5 p-2">
                 <img
-                  src="/ss-homestay-icon-512.jpg?v=2"
+                  src="/ss-homestay-logo-v2.jpg"
                   alt="Logo SS Homestay & Roomstay"
                   className="h-16 w-16 rounded-md bg-white object-contain p-0.5 shrink-0 border border-slate-200"
                 />
