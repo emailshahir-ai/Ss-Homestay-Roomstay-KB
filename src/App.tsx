@@ -18,7 +18,6 @@ import {
   ROOMSTAY_FEATURES,
   ROOMSTAY_PHOTOS,
   ROOMSTAY_RATES,
-  SCRIPT_URL,
   TABS,
   TESTIMONIAL_PHOTOS,
   TabId,
@@ -29,7 +28,14 @@ import { AdminPanel } from './components/AdminPanel';
 import { Lightbox, LightboxImage } from './components/Lightbox';
 import { SafeImage } from './components/SafeImage';
 import { WhatsAppBookingForm } from './components/WhatsAppBookingForm';
-import { FinancialRecord, SheetMeta, parseSheetResponse } from './utils/sheetParser';
+import { GuestReceiptGenerator } from './components/GuestReceiptGenerator';
+import {
+  FinancialRecord,
+  SheetMeta,
+  SheetRowRecord,
+  parseSheetResponse,
+} from './utils/sheetParser';
+import { getActiveScriptUrl } from './utils/sheetApi';
 import { formatDisplayPhone } from './utils/whatsapp';
 
 interface FeedbackEntry {
@@ -46,6 +52,7 @@ export function App() {
   const [activeTab, setActiveTab] = useState<TabId>('utama');
   const [bookings, setBookings] = useState<BookingRecord[]>([]);
   const [financialRecords, setFinancialRecords] = useState<FinancialRecord[]>([]);
+  const [sheetRows, setSheetRows] = useState<SheetRowRecord[]>([]);
   const [sheetMeta, setSheetMeta] = useState<SheetMeta | null>(null);
   const [loadingCalendar, setLoadingCalendar] = useState<boolean>(true);
   const [calendarError, setCalendarError] = useState<string | null>(null);
@@ -97,8 +104,9 @@ export function App() {
     }
 
     try {
-      const cacheBuster = `${SCRIPT_URL.includes('?') ? '&' : '?'}t=${Date.now()}`;
-      const res = await fetch(`${SCRIPT_URL}${cacheBuster}`, {
+      const activeUrl = getActiveScriptUrl();
+      const cacheBuster = `${activeUrl.includes('?') ? '&' : '?'}t=${Date.now()}`;
+      const res = await fetch(`${activeUrl}${cacheBuster}`, {
         method: 'GET',
         redirect: 'follow',
         cache: 'no-store',
@@ -115,6 +123,7 @@ export function App() {
       const parsed = parseSheetResponse(data);
       setBookings(parsed.bookings);
       setFinancialRecords(parsed.financialRecords);
+      setSheetRows(parsed.sheetRows);
       setSheetMeta(parsed.meta);
       if (notify) {
         showToast('Data kalendar dan kewangan berjaya dikemaskini.');
@@ -300,10 +309,10 @@ export function App() {
           {/* Tulisan Berjalan Dari Kanan Ke Kiri Di Bawah Foto Header */}
           <div
             className="marquee-wrapper overflow-hidden border-t border-purple-800/30 bg-purple-700 py-1.5 leading-none text-white"
-            aria-label="SELAMAT DATANG KE PORTAL Ss HOMESTAY & ROOMSTAY"
+            aria-label="Selamat Datang Ke Portal Ss Homestay & Roomstay Kota Bharu | Semoga Percutian Anda Lebih Bermakna Semasa Menginap Di Homestay & Roomstay Kami | Insya-Allah Selamat Dan Selesa Sepanjang Masa | Terima Kasih Kerana Memilih Ss Homestay & Roomstay |"
           >
             <span className="animate-marquee-rtl font-display text-[11px] sm:text-xs font-bold tracking-wider">
-              SELAMAT DATANG KE PORTAL Ss HOMESTAY &amp; ROOMSTAY
+              Selamat Datang Ke Portal Ss Homestay &amp; Roomstay Kota Bharu &nbsp;&nbsp;|&nbsp;&nbsp; Semoga Percutian Anda Lebih Bermakna Semasa Menginap Di Homestay &amp; Roomstay Kami &nbsp;&nbsp;|&nbsp;&nbsp; Insya-Allah Selamat Dan Selesa Sepanjang Masa &nbsp;&nbsp;|&nbsp;&nbsp; Terima Kasih Kerana Memilih Ss Homestay &amp; Roomstay &nbsp;&nbsp;|
             </span>
           </div>
         </section>
@@ -698,34 +707,55 @@ export function App() {
             </p>
 
             <div className="mt-6 grid gap-6 md:grid-cols-2">
-              {YOUTUBE_VIDEOS.map((video) => (
-                <div
-                  key={video.id}
-                  className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50"
-                >
-                  <div className="aspect-9/16 max-h-[520px] w-full bg-slate-900">
-                    <iframe
-                      src={video.embedUrl}
-                      title={video.title}
-                      className="h-full w-full border-0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                      allowFullScreen
-                    />
-                  </div>
-                  <div className="flex items-center justify-between gap-2 p-4 bg-white border-t border-slate-200">
-                    <span className="text-sm font-semibold text-slate-900">{video.title}</span>
-                    <a
-                      href={video.watchUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:underline whitespace-nowrap shrink-0"
+              {YOUTUBE_VIDEOS.map((video) => {
+                const isLandscape = video.orientation === 'landscape';
+                const portraitCount = YOUTUBE_VIDEOS.filter(
+                  (v) => v.orientation === 'portrait'
+                ).length;
+                const isSoloPortrait = !isLandscape && portraitCount === 1;
+                return (
+                  <div
+                    key={video.id}
+                    className={`overflow-hidden rounded-xl border border-slate-200 bg-slate-50 ${
+                      isLandscape
+                        ? 'md:col-span-2'
+                        : isSoloPortrait
+                          ? 'md:col-span-2 mx-auto w-full max-w-[360px]'
+                          : ''
+                    }`}
+                  >
+                    <div
+                      className={
+                        isLandscape
+                          ? 'aspect-video w-full bg-slate-900'
+                          : isSoloPortrait
+                            ? 'aspect-9/16 w-full bg-slate-900'
+                            : 'aspect-9/16 max-h-[520px] w-full bg-slate-900'
+                      }
                     >
-                      <span>YouTube</span>
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
+                      <iframe
+                        src={video.embedUrl}
+                        title={video.title}
+                        className="h-full w-full border-0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                      />
+                    </div>
+                    <div className="flex items-center justify-between gap-2 p-4 bg-white border-t border-slate-200">
+                      <span className="text-sm font-semibold text-slate-900">{video.title}</span>
+                      <a
+                        href={video.watchUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:underline whitespace-nowrap shrink-0"
+                      >
+                        <span>YouTube</span>
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </section>
         )}
@@ -807,7 +837,9 @@ export function App() {
         {/* TAB 9: CETAKAN */}
         {activeTab === 'cetakan' && (
           <div className="space-y-6">
-            <section className="rounded-xl border border-slate-200 bg-white p-6 sm:p-8">
+            <GuestReceiptGenerator />
+
+            <section className="rounded-xl border border-slate-200 bg-white p-6 sm:p-8 print:hidden">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2 className="text-2xl font-bold tracking-tight text-slate-900">
@@ -883,12 +915,14 @@ export function App() {
           <AdminPanel
             bookings={bookings}
             financialRecords={financialRecords}
+            sheetRows={sheetRows}
             sheetMeta={sheetMeta}
             loadingData={loadingCalendar}
             dataError={calendarError}
             savedOwnerPhone={savedOwnerPhone}
             onUpdateSavedOwnerPhone={handleUpdateSavedOwnerPhone}
             onRefreshCalendar={() => loadCalendarData(true)}
+            onShowToast={showToast}
           />
         )}
       </main>

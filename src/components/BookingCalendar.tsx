@@ -12,6 +12,7 @@ import {
 import { DAY_SHORT_NAMES, MONTH_NAMES } from '../data/homestayData';
 
 export interface BookingRecord {
+  rowNumber?: number;
   nama: string;
   masuk: string;
   keluar: string;

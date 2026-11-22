@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Check,
   CheckCircle2,
@@ -6,6 +6,8 @@ import {
   ExternalLink,
   Image as ImageIcon,
   MessageCircle,
+  RotateCcw,
+  Save,
   Share2,
 } from 'lucide-react';
 import { CONTACT_INFO } from '../data/homestayData';
@@ -19,8 +21,21 @@ interface OgCheckData {
   description: string;
 }
 
+const WA_SHARE_URL_STORAGE_KEY = 'ss_homestay_wa_share_url_v1';
+const WA_PROMO_TEXT_STORAGE_KEY = 'ss_homestay_wa_promo_text_v1';
+
 const DEFAULT_PROMO_TEXT =
-  'Jemput menginap di *SS Homestay & Roomstay*, Kg Padang Enggang, Kota Bharu, Kelantan!\n• Private Pool + 3 Bilik Air-Cond (RM300/mlm)\n• Roomstay Selesa (RM130/mlm)\n• Pakej Kombo Homestay & Roomstay (RM400/mlm)\n\nSemak tarikh kosong & tempah terus di sini:';
+  'Jemput menginap di *SS Homestay & Roomstay*, Kg Padang Enggang, Kota Bharu, Kelantan!\n• Homestay + Private Pool + 3 Bilik Air-Cond\n• Roomstay + Private Pool + 1 Bilik Aircond\n• Pakej Kombo Homestay & Roomstay\nDiskaun Harga Yang Melebihi 2 Malam\n\nSemak tarikh kosong & tempah terus di sini:';
+
+function readStoredValue(key: string, fallback: string): string {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const stored = window.localStorage.getItem(key);
+    return stored && stored.trim().length > 0 ? stored : fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 export const WhatsAppShareCard: React.FC = () => {
   const detectedOrigin = useMemo(() => {
@@ -28,11 +43,33 @@ export const WhatsAppShareCard: React.FC = () => {
     return window.location.origin;
   }, []);
 
-  const [shareUrl, setShareUrl] = useState<string>(() => detectedOrigin);
-  const [promoText, setPromoText] = useState<string>(DEFAULT_PROMO_TEXT);
+  const initialShareUrl = useMemo(
+    () => readStoredValue(WA_SHARE_URL_STORAGE_KEY, detectedOrigin),
+    [detectedOrigin]
+  );
+  const initialPromoText = useMemo(
+    () => readStoredValue(WA_PROMO_TEXT_STORAGE_KEY, DEFAULT_PROMO_TEXT),
+    []
+  );
+
+  const [shareUrl, setShareUrl] = useState<string>(initialShareUrl);
+  const [promoText, setPromoText] = useState<string>(initialPromoText);
+  const [savedUrl, setSavedUrl] = useState<string>(initialShareUrl);
+  const [savedPromoText, setSavedPromoText] = useState<string>(initialPromoText);
+  const [saveFeedback, setSaveFeedback] = useState<string | null>(null);
   const [copiedType, setCopiedType] = useState<'url' | 'fresh' | 'full' | null>(null);
   const [shareFeedback, setShareFeedback] = useState<string | null>(null);
   const [ogStatus, setOgStatus] = useState<OgCheckData | null>(null);
+
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -50,6 +87,50 @@ export const WhatsAppShareCard: React.FC = () => {
       active = false;
     };
   }, []);
+
+  const hasUnsavedChanges = shareUrl !== savedUrl || promoText !== savedPromoText;
+
+  const showTempSaveFeedback = (message: string) => {
+    setSaveFeedback(message);
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+    }
+    saveTimerRef.current = setTimeout(() => setSaveFeedback(null), 3200);
+  };
+
+  const handleSaveSettings = () => {
+    const nextUrl = shareUrl.trim() || detectedOrigin;
+    const nextPromo = promoText.trim() || DEFAULT_PROMO_TEXT;
+
+    try {
+      window.localStorage.setItem(WA_SHARE_URL_STORAGE_KEY, nextUrl);
+      window.localStorage.setItem(WA_PROMO_TEXT_STORAGE_KEY, nextPromo);
+    } catch {
+      showTempSaveFeedback('Tidak dapat menyimpan ke pelayar. Sila cuba lagi.');
+      return;
+    }
+
+    setShareUrl(nextUrl);
+    setPromoText(nextPromo);
+    setSavedUrl(nextUrl);
+    setSavedPromoText(nextPromo);
+    showTempSaveFeedback('Pautan & mesej promosi berjaya disimpan.');
+  };
+
+  const handleResetDefaults = () => {
+    try {
+      window.localStorage.removeItem(WA_SHARE_URL_STORAGE_KEY);
+      window.localStorage.removeItem(WA_PROMO_TEXT_STORAGE_KEY);
+    } catch {
+      // Ignore storage removal errors
+    }
+
+    setShareUrl(detectedOrigin);
+    setPromoText(DEFAULT_PROMO_TEXT);
+    setSavedUrl(detectedOrigin);
+    setSavedPromoText(DEFAULT_PROMO_TEXT);
+    showTempSaveFeedback('Tetapan dikembalikan kepada pautan & mesej asal.');
+  };
 
   const cleanShareUrl = shareUrl.trim() || CONTACT_INFO.websiteUrl;
   const displayDomain = useMemo(() => {
@@ -89,7 +170,7 @@ export const WhatsAppShareCard: React.FC = () => {
 
     if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
       try {
-        const res = await fetch('/ss-homestay-logo-v3.jpg');
+        const res = await fetch('/ss-homestay-logo-v5.jpg');
         const blob = await res.blob();
         const logoFile = new File([blob], 'logo-ss-homestay.jpg', { type: 'image/jpeg' });
 
@@ -153,7 +234,7 @@ export const WhatsAppShareCard: React.FC = () => {
               {/* WhatsApp Link Preview Box */}
               <div className="flex items-stretch gap-3 overflow-hidden rounded-lg bg-black/5 p-2">
                 <img
-                  src="/ss-homestay-logo-v3.jpg"
+                  src="/ss-homestay-logo-v5.jpg"
                   alt="Logo SS Homestay & Roomstay"
                   className="h-16 w-16 rounded-md bg-white object-contain p-0.5 shrink-0 border border-slate-200"
                 />
@@ -215,28 +296,75 @@ export const WhatsAppShareCard: React.FC = () => {
             </div>
             <input
               id="wa-share-url"
-              type="url"
+              type="text"
+              inputMode="url"
+              spellCheck={false}
               value={shareUrl}
               onChange={(e) => setShareUrl(e.target.value)}
               placeholder="https://..."
-              className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 font-mono-num text-xs sm:text-sm text-slate-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20"
+              className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono-num text-xs sm:text-sm text-slate-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20"
             />
           </div>
 
           <div>
-            <label htmlFor="wa-share-promo" className="block text-xs font-semibold text-slate-700">
-              Keterangan Mesej Promosi WhatsApp
-            </label>
+            <div className="flex items-center justify-between gap-2">
+              <label htmlFor="wa-share-promo" className="block text-xs font-semibold text-slate-700">
+                Keterangan Mesej Promosi WhatsApp
+              </label>
+              <span
+                className={`text-[11px] font-medium ${
+                  hasUnsavedChanges ? 'text-amber-700' : 'text-emerald-700'
+                }`}
+              >
+                {hasUnsavedChanges ? 'Perubahan belum disimpan' : 'Disimpan'}
+              </span>
+            </div>
             <textarea
               id="wa-share-promo"
-              rows={4}
+              rows={6}
+              spellCheck={false}
               value={promoText}
               onChange={(e) => setPromoText(e.target.value)}
-              className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-xs sm:text-sm text-slate-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20"
+              placeholder="Tulis mesej promosi WhatsApp di sini..."
+              className="mt-1.5 w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs sm:text-sm leading-relaxed text-slate-900 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20"
             />
           </div>
 
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleSaveSettings}
+              className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors ${
+                hasUnsavedChanges
+                  ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs'
+                  : 'border border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
+              }`}
+            >
+              <Save className="h-3.5 w-3.5 shrink-0" />
+              <span>Simpan Tetapan</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleResetDefaults}
+              className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+            >
+              <RotateCcw className="h-3.5 w-3.5 shrink-0" />
+              <span>Set Semula Asal</span>
+            </button>
+
+            {saveFeedback && (
+              <span
+                className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700"
+                role="status"
+              >
+                <Check className="h-3.5 w-3.5 shrink-0" />
+                {saveFeedback}
+              </span>
+            )}
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-2 pt-1 border-t border-slate-100">
             <button
               type="button"
               onClick={handleNativeShareWithLogo}

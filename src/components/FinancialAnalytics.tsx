@@ -10,6 +10,7 @@ import {
   FileText,
   Loader2,
   MessageCircle,
+  Pencil,
   Plus,
   Printer,
   RefreshCw,
@@ -18,8 +19,9 @@ import {
   Wallet,
   X,
 } from 'lucide-react';
-import { MONTH_NAMES, SCRIPT_URL } from '../data/homestayData';
+import { MONTH_NAMES } from '../data/homestayData';
 import { FinancialRecord, SheetMeta, formatRM } from '../utils/sheetParser';
+import { getActiveScriptUrl } from '../utils/sheetApi';
 import { generateFinancialPdf } from '../utils/financialPdf';
 import { FinancialPrintMode, FinancialPrintReport } from './FinancialPrintReport';
 import {
@@ -35,6 +37,8 @@ interface FinancialAnalyticsProps {
   loading: boolean;
   error: string | null;
   onRefresh: () => Promise<FinancialRecord[] | null> | void;
+  onEditRowByNumber?: (rowNumber: number) => void;
+  onDeleteRowByNumber?: (rowNumber: number) => void;
 }
 
 type TypeFilter = 'semua' | 'masuk' | 'keluar';
@@ -106,6 +110,8 @@ export const FinancialAnalytics: React.FC<FinancialAnalyticsProps> = ({
   loading,
   error,
   onRefresh,
+  onEditRowByNumber,
+  onDeleteRowByNumber,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('semua');
@@ -284,7 +290,7 @@ export const FinancialAnalytics: React.FC<FinancialAnalyticsProps> = ({
     };
 
     try {
-      const res = await fetch(SCRIPT_URL, {
+      const res = await fetch(getActiveScriptUrl(), {
         method: 'POST',
         redirect: 'follow',
         headers: {
@@ -1575,6 +1581,28 @@ export const FinancialAnalytics: React.FC<FinancialAnalyticsProps> = ({
                               <span>WhatsApp</span>
                             </a>
                           )}
+                          {!isLocal && onEditRowByNumber && (
+                            <button
+                              type="button"
+                              onClick={() => onEditRowByNumber(rec.rowNumber)}
+                              className="inline-flex items-center justify-center rounded-md border border-indigo-200 bg-indigo-50 p-1 text-indigo-700 hover:bg-indigo-100 transition-colors"
+                              title={`Edit rekod Google Sheet (Baris #${rec.rowNumber})`}
+                              aria-label={`Edit rekod baris ${rec.rowNumber}`}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                          {!isLocal && onDeleteRowByNumber && (
+                            <button
+                              type="button"
+                              onClick={() => onDeleteRowByNumber(rec.rowNumber)}
+                              className="inline-flex items-center justify-center rounded-md border border-rose-200 bg-rose-50 p-1 text-rose-700 hover:bg-rose-100 transition-colors"
+                              title={`Padam rekod Google Sheet (Baris #${rec.rowNumber})`}
+                              aria-label={`Padam rekod baris ${rec.rowNumber}`}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
                           {isLocal && (
                             <button
                               type="button"
@@ -1586,7 +1614,7 @@ export const FinancialAnalytics: React.FC<FinancialAnalyticsProps> = ({
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
                           )}
-                          {!waHref && !isLocal && (
+                          {!waHref && !isLocal && !onEditRowByNumber && !onDeleteRowByNumber && (
                             <span className="text-xs text-slate-300">—</span>
                           )}
                         </div>

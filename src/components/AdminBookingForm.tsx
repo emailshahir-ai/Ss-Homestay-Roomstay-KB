@@ -8,8 +8,8 @@ import {
   RotateCcw,
   Save,
 } from 'lucide-react';
-import { SCRIPT_URL } from '../data/homestayData';
 import { FinancialRecord, SheetMeta, formatRM } from '../utils/sheetParser';
+import { getActiveScriptUrl } from '../utils/sheetApi';
 import { BookingRecord } from './BookingCalendar';
 import {
   buildAdminConfirmationMessage,
@@ -289,7 +289,7 @@ export const AdminBookingForm: React.FC<AdminBookingFormProps> = ({
     };
 
     try {
-      const res = await fetch(SCRIPT_URL, {
+      const res = await fetch(getActiveScriptUrl(), {
         method: 'POST',
         redirect: 'follow',
         headers: {

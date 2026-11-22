@@ -19,16 +19,39 @@ export interface FinancialRecord {
   jenis: 'masuk' | 'keluar' | 'campuran';
 }
 
+export interface SheetRowRecord {
+  id: string;
+  rowNumber: number; // 1-based Google Sheet row number (row 1 = header, row 2+ = data)
+  timestamp: string;
+  nama: string;
+  noTelefon: string;
+  tarikhMasukIso: string;
+  tarikhMasukDisplay: string;
+  tarikhMasukRaw: string;
+  tarikhKeluarIso: string;
+  tarikhKeluarDisplay: string;
+  tarikhKeluarRaw: string;
+  pilihanCode: string; // 'H' | 'R' | 'H+R' | '' | original
+  pilihanLabel: string;
+  jumlah: number;
+  perkara: string;
+  wangKeluar: number;
+  kategori: 'tempahan' | 'kewangan' | 'lain';
+}
+
 export interface SheetMeta {
   title?: string;
   tab?: string;
   totalRows: number;
   lastSyncedAt: string;
+  scriptVersion?: number;
+  capabilities?: string[];
 }
 
 export interface ParsedSheetData {
   bookings: BookingRecord[];
   financialRecords: FinancialRecord[];
+  sheetRows: SheetRowRecord[];
   meta: SheetMeta;
 }
 
@@ -41,9 +64,31 @@ export function normalizeUnit(raw: unknown): string {
   const upper = val.toUpperCase();
   if (upper === 'H' || upper === 'HOMESTAY') return 'Homestay';
   if (upper === 'R' || upper === 'ROOMSTAY') return 'Roomstay';
-  if (upper === 'H+R' || upper === 'R+H' || upper.includes('KEDUA')) {
+  if (upper === 'H+R' || upper === 'R+H' || upper.includes('KEDUA') || upper.includes('KOMBO')) {
     return 'Homestay & Roomstay';
   }
+  return val;
+}
+
+/**
+ * Normalize unit string back into compact Google Sheet code ("H", "R", "H+R", or "").
+ */
+export function normalizeUnitCode(raw: unknown): string {
+  const val = String(raw ?? '').trim();
+  if (!val) return '';
+  const upper = val.toUpperCase();
+  if (
+    upper === 'H+R' ||
+    upper === 'R+H' ||
+    upper.includes('H+R') ||
+    upper.includes('KEDUA') ||
+    upper.includes('KOMBO') ||
+    (upper.includes('HOMESTAY') && upper.includes('ROOMSTAY'))
+  ) {
+    return 'H+R';
+  }
+  if (upper === 'H' || upper.includes('HOMESTAY')) return 'H';
+  if (upper === 'R' || upper.includes('ROOMSTAY')) return 'R';
   return val;
 }
 
@@ -177,8 +222,9 @@ export function parseSheetResponse(payload: unknown): ParsedSheetData {
 
   const bookings: BookingRecord[] = [];
   const rawFinancials: Omit<FinancialRecord, 'baki'>[] = [];
+  const sheetRows: SheetRowRecord[] = [];
 
-  // Format A: { ok: true, title, tab, values: string[][] }
+  // Format A: { ok: true, title, tab, scriptVersion, capabilities, values: string[][] }
   if (
     payload &&
     typeof payload === 'object' &&
@@ -188,18 +234,29 @@ export function parseSheetResponse(payload: unknown): ParsedSheetData {
     const obj = payload as {
       title?: string;
       tab?: string;
+      scriptVersion?: number;
+      capabilities?: string[];
       values: unknown[][];
     };
     const rows = obj.values;
+    const scriptVersion =
+      typeof obj.scriptVersion === 'number' ? obj.scriptVersion : undefined;
+    const capabilities = Array.isArray(obj.capabilities)
+      ? obj.capabilities.map((c) => String(c))
+      : undefined;
+
     if (rows.length <= 1) {
       return {
         bookings: [],
         financialRecords: [],
+        sheetRows: [],
         meta: {
           title: obj.title,
           tab: obj.tab,
           totalRows: 0,
           lastSyncedAt: nowStr,
+          scriptVersion,
+          capabilities,
         },
       };
     }
@@ -225,12 +282,15 @@ export function parseSheetResponse(payload: unknown): ParsedSheetData {
       const row = rows[i];
       if (!Array.isArray(row)) continue;
 
+      const rowNumber = i + 1;
       const timestamp = idxTimestamp !== -1 ? cleanText(row[idxTimestamp]) : '';
       const nama = idxNama !== -1 ? cleanText(row[idxNama]) : '';
       const noTelefon = idxTelefon !== -1 ? cleanText(row[idxTelefon]) : '';
       const rawMasuk = idxMasuk !== -1 ? row[idxMasuk] : '';
       const rawKeluar = idxKeluar !== -1 ? row[idxKeluar] : '';
+      const rawPilihan = idxPilihan !== -1 ? cleanText(row[idxPilihan]) : '';
       const unit = idxPilihan !== -1 ? normalizeUnit(row[idxPilihan]) : '';
+      const pilihanCode = normalizeUnitCode(rawPilihan);
       const wangMasuk = idxJumlah !== -1 ? parseRinggit(row[idxJumlah]) : 0;
       const perkaraRaw = idxPerkara !== -1 ? cleanText(row[idxPerkara]) : '';
       const wangKeluar = idxWangKeluar !== -1 ? parseRinggit(row[idxWangKeluar]) : 0;
@@ -239,9 +299,52 @@ export function parseSheetResponse(payload: unknown): ParsedSheetData {
       const parsedKeluar = parseSheetDate(rawKeluar);
       const parsedTimestamp = parseSheetDate(timestamp);
 
+      // Skip completely empty trailing rows
+      const hasAnyContent = Boolean(
+        timestamp ||
+          nama ||
+          noTelefon ||
+          cleanText(rawMasuk) ||
+          cleanText(rawKeluar) ||
+          rawPilihan ||
+          wangMasuk > 0 ||
+          perkaraRaw ||
+          wangKeluar > 0
+      );
+
+      if (hasAnyContent) {
+        const kategori: SheetRowRecord['kategori'] =
+          nama && parsedMasuk
+            ? 'tempahan'
+            : wangMasuk > 0 || wangKeluar > 0
+            ? 'kewangan'
+            : 'lain';
+
+        sheetRows.push({
+          id: `sheet-row-${rowNumber}`,
+          rowNumber,
+          timestamp,
+          nama,
+          noTelefon,
+          tarikhMasukIso: parsedMasuk ? parsedMasuk.iso : '',
+          tarikhMasukDisplay: parsedMasuk ? parsedMasuk.display : cleanText(rawMasuk),
+          tarikhMasukRaw: cleanText(rawMasuk),
+          tarikhKeluarIso: parsedKeluar ? parsedKeluar.iso : '',
+          tarikhKeluarDisplay: parsedKeluar ? parsedKeluar.display : cleanText(rawKeluar),
+          tarikhKeluarRaw: cleanText(rawKeluar),
+          pilihanCode,
+          pilihanLabel: unit,
+          jumlah: wangMasuk,
+          perkara: perkaraRaw,
+          wangKeluar,
+          kategori,
+        });
+      }
+
       // Add to Booking Calendar only if it's a valid stay (has guest name & check-in date)
       if (nama && parsedMasuk) {
         bookings.push({
+          rowNumber,
           nama,
           masuk: parsedMasuk.iso,
           keluar: parsedKeluar ? parsedKeluar.iso : parsedMasuk.iso,
@@ -276,8 +379,8 @@ export function parseSheetResponse(payload: unknown): ParsedSheetData {
             : 'masuk';
 
         rawFinancials.push({
-          id: `row-${i + 1}`,
-          rowNumber: i + 1,
+          id: `row-${rowNumber}`,
+          rowNumber,
           timestamp,
           tarikhIso,
           tarikhDisplay,
@@ -315,11 +418,14 @@ export function parseSheetResponse(payload: unknown): ParsedSheetData {
     return {
       bookings,
       financialRecords,
+      sheetRows,
       meta: {
         title: obj.title,
         tab: obj.tab,
-        totalRows: rows.length - 1,
+        totalRows: sheetRows.length,
         lastSyncedAt: nowStr,
+        scriptVersion,
+        capabilities,
       },
     };
   }
@@ -329,35 +435,74 @@ export function parseSheetResponse(payload: unknown): ParsedSheetData {
     payload.forEach((item, index) => {
       if (!item || typeof item !== 'object') return;
       const rec = item as Record<string, unknown>;
+      const rowNumber = index + 2;
+      const timestamp = cleanText(rec.timestamp ?? rec.Timestamp);
       const nama = cleanText(rec.nama ?? rec.NAMA);
-      const parsedMasuk = parseSheetDate(rec.masuk ?? rec['TARIKH MASUK']);
-      const parsedKeluar = parseSheetDate(rec.keluar ?? rec['TARIKH KELUAR']);
-      const unit = normalizeUnit(
-        rec.pilihan ?? rec.jenis ?? rec.unit ?? rec.kategori ?? rec.penginapan ?? rec['PILIHAN MENGINAP']
-      );
+      const noTelefon = cleanText(rec.telefon ?? rec['NO. TELEFON']);
+      const rawMasuk = rec.masuk ?? rec['TARIKH MASUK'];
+      const rawKeluar = rec.keluar ?? rec['TARIKH KELUAR'];
+      const parsedMasuk = parseSheetDate(rawMasuk);
+      const parsedKeluar = parseSheetDate(rawKeluar);
+      const rawPilihan =
+        rec.pilihan ??
+        rec.jenis ??
+        rec.unit ??
+        rec.kategori ??
+        rec.penginapan ??
+        rec['PILIHAN MENGINAP'];
+      const unit = normalizeUnit(rawPilihan);
+      const pilihanCode = normalizeUnitCode(rawPilihan);
       const wangMasuk = parseRinggit(rec.jumlah ?? rec.JUMLAH ?? rec.wang_masuk);
       const wangKeluar = parseRinggit(rec.wang_keluar ?? rec['WANG KELUAR'] ?? rec.keluar_rm);
       const perkaraRaw = cleanText(rec.perkara ?? rec.PERKARA);
 
+      sheetRows.push({
+        id: `sheet-row-${rowNumber}`,
+        rowNumber,
+        timestamp,
+        nama,
+        noTelefon,
+        tarikhMasukIso: parsedMasuk ? parsedMasuk.iso : '',
+        tarikhMasukDisplay: parsedMasuk ? parsedMasuk.display : cleanText(rawMasuk),
+        tarikhMasukRaw: cleanText(rawMasuk),
+        tarikhKeluarIso: parsedKeluar ? parsedKeluar.iso : '',
+        tarikhKeluarDisplay: parsedKeluar ? parsedKeluar.display : cleanText(rawKeluar),
+        tarikhKeluarRaw: cleanText(rawKeluar),
+        pilihanCode,
+        pilihanLabel: unit,
+        jumlah: wangMasuk,
+        perkara: perkaraRaw,
+        wangKeluar,
+        kategori:
+          nama && parsedMasuk
+            ? 'tempahan'
+            : wangMasuk > 0 || wangKeluar > 0
+            ? 'kewangan'
+            : 'lain',
+      });
+
       if (nama && parsedMasuk) {
         bookings.push({
+          rowNumber,
           nama,
           masuk: parsedMasuk.iso,
           keluar: parsedKeluar ? parsedKeluar.iso : parsedMasuk.iso,
           pilihan: unit || 'Penginapan',
+          noTelefon,
+          jumlah: wangMasuk,
         });
       }
 
       if (wangMasuk > 0 || wangKeluar > 0) {
         rawFinancials.push({
-          id: `row-${index + 2}`,
-          rowNumber: index + 2,
-          timestamp: cleanText(rec.timestamp ?? rec.Timestamp),
+          id: `row-${rowNumber}`,
+          rowNumber,
+          timestamp,
           tarikhIso: parsedMasuk ? parsedMasuk.iso : '',
           tarikhDisplay: parsedMasuk ? parsedMasuk.display : '-',
           monthKey: parsedMasuk ? parsedMasuk.monthKey : 'Lain-lain',
           nama,
-          noTelefon: cleanText(rec.telefon ?? rec['NO. TELEFON']),
+          noTelefon,
           unit,
           tarikhMasuk: parsedMasuk ? parsedMasuk.display : '',
           tarikhKeluar: parsedKeluar ? parsedKeluar.display : '',
@@ -388,8 +533,9 @@ export function parseSheetResponse(payload: unknown): ParsedSheetData {
     return {
       bookings,
       financialRecords,
+      sheetRows,
       meta: {
-        totalRows: payload.length,
+        totalRows: sheetRows.length,
         lastSyncedAt: nowStr,
       },
     };
@@ -398,6 +544,7 @@ export function parseSheetResponse(payload: unknown): ParsedSheetData {
   return {
     bookings: [],
     financialRecords: [],
+    sheetRows: [],
     meta: {
       totalRows: 0,
       lastSyncedAt: nowStr,

@@ -4,21 +4,26 @@ import {
   CalendarPlus,
   Check,
   ClipboardList,
+  Database,
   Download,
   ExternalLink,
   Lock,
   LogOut,
   MessageCircle,
   Phone,
+  Receipt,
   RefreshCw,
   Search,
   ShieldCheck,
 } from 'lucide-react';
 import { CONTACT_INFO } from '../data/homestayData';
-import { FinancialRecord, SheetMeta, formatRM } from '../utils/sheetParser';
+import { FinancialRecord, SheetMeta, SheetRowRecord, formatRM } from '../utils/sheetParser';
 import { BookingRecord } from './BookingCalendar';
 import { FinancialAnalytics } from './FinancialAnalytics';
 import { AdminBookingForm } from './AdminBookingForm';
+import { AdminSheetManager } from './AdminSheetManager';
+import { GuestReceiptGenerator } from './GuestReceiptGenerator';
+import { DeleteSheetRowModal, EditSheetRowModal } from './SheetRowModals';
 import { WhatsAppBookingForm } from './WhatsAppBookingForm';
 import { WhatsAppShareCard } from './WhatsAppShareCard';
 import {
@@ -31,15 +36,17 @@ import {
 interface AdminPanelProps {
   bookings: BookingRecord[];
   financialRecords: FinancialRecord[];
+  sheetRows: SheetRowRecord[];
   sheetMeta: SheetMeta | null;
   loadingData: boolean;
   dataError: string | null;
   savedOwnerPhone: string;
   onUpdateSavedOwnerPhone: (phone: string) => void;
   onRefreshCalendar: () => Promise<FinancialRecord[] | null> | void;
+  onShowToast?: (message: string) => void;
 }
 
-type AdminSubTab = 'tempahan' | 'kewangan' | 'whatsapp' | 'pengurusan';
+type AdminSubTab = 'tempahan' | 'data' | 'resit' | 'kewangan' | 'whatsapp' | 'pengurusan';
 
 function formatIsoDisplay(iso: string): string {
   const parts = iso.split('-');
@@ -50,17 +57,25 @@ function formatIsoDisplay(iso: string): string {
 export const AdminPanel: React.FC<AdminPanelProps> = ({
   bookings,
   financialRecords,
+  sheetRows,
   sheetMeta,
   loadingData,
   dataError,
   savedOwnerPhone,
   onUpdateSavedOwnerPhone,
   onRefreshCalendar,
+  onShowToast,
 }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [subTab, setSubTab] = useState<AdminSubTab>('tempahan');
+
+  // Shared Edit / Delete Google Sheet row modals state
+  const [editingRow, setEditingRow] = useState<SheetRowRecord | null>(null);
+  const [deletingRow, setDeletingRow] = useState<SheetRowRecord | null>(null);
+  const [receiptPrefillRow, setReceiptPrefillRow] = useState<SheetRowRecord | null>(null);
+  const [forceShowScriptGuide, setForceShowScriptGuide] = useState(false);
 
   // Owner saved WhatsApp phone editor
   const [phoneInput, setPhoneInput] = useState<string>(() => formatDisplayPhone(savedOwnerPhone) || CONTACT_INFO.phoneDisplay);
@@ -69,6 +84,29 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   // Guest booking search in WhatsApp tab
   const [guestSearch, setGuestSearch] = useState('');
+
+  const handleOpenEditByRowNumber = (rowNumber: number) => {
+    const found = sheetRows.find((r) => r.rowNumber === rowNumber);
+    if (found) {
+      setEditingRow(found);
+    } else if (onShowToast) {
+      onShowToast('Baris rekod tidak ditemui. Sila klik Segar Semula.');
+    }
+  };
+
+  const handleOpenDeleteByRowNumber = (rowNumber: number) => {
+    const found = sheetRows.find((r) => r.rowNumber === rowNumber);
+    if (found) {
+      setDeletingRow(found);
+    } else if (onShowToast) {
+      onShowToast('Baris rekod tidak ditemui. Sila klik Segar Semula.');
+    }
+  };
+
+  const handleScriptUpgradeNeeded = () => {
+    setForceShowScriptGuide(true);
+    setSubTab('data');
+  };
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,7 +144,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     const fileUrl =
       format === 'png'
         ? `/ss-homestay-icon-512.png?v=${Date.now()}`
-        : `/ss-homestay-logo-v3.jpg?v=${Date.now()}`;
+        : `/ss-homestay-logo-v5.jpg?v=${Date.now()}`;
     const fileName =
       format === 'png'
         ? 'logo-ss-homestay-512x512.png'
@@ -221,6 +259,30 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             </button>
             <button
               type="button"
+              onClick={() => setSubTab('data')}
+              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors whitespace-nowrap shrink-0 ${
+                subTab === 'data'
+                  ? 'bg-slate-900 text-white'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Database className="h-3.5 w-3.5" />
+              <span>Urus Data Sheet</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSubTab('resit')}
+              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors whitespace-nowrap shrink-0 ${
+                subTab === 'resit'
+                  ? 'bg-slate-900 text-white'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Receipt className="h-3.5 w-3.5" />
+              <span>Resit Penghuni</span>
+            </button>
+            <button
+              type="button"
               onClick={() => setSubTab('kewangan')}
               className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors whitespace-nowrap shrink-0 ${
                 subTab === 'kewangan'
@@ -277,7 +339,35 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         />
       )}
 
-      {/* Sub-tab 1: Financial Analytics + Finance Entry Form */}
+      {/* Sub-tab 1: Urus Data Google Sheet (Edit & Padam) */}
+      {subTab === 'data' && (
+        <AdminSheetManager
+          sheetRows={sheetRows}
+          sheetMeta={sheetMeta}
+          loading={loadingData}
+          error={dataError}
+          forceShowScriptGuide={forceShowScriptGuide}
+          onDismissScriptGuideForce={() => setForceShowScriptGuide(false)}
+          onEditRow={(row) => setEditingRow(row)}
+          onDeleteRow={(row) => setDeletingRow(row)}
+          onCreateReceipt={(row) => {
+            setReceiptPrefillRow(row);
+            setSubTab('resit');
+          }}
+          onRefresh={onRefreshCalendar}
+        />
+      )}
+
+      {/* Sub-tab 2: Borang PDF Cetakan Resit Penghuni */}
+      {subTab === 'resit' && (
+        <GuestReceiptGenerator
+          sheetRows={sheetRows}
+          initialRow={receiptPrefillRow}
+          onClearInitialRow={() => setReceiptPrefillRow(null)}
+        />
+      )}
+
+      {/* Sub-tab 2: Financial Analytics + Finance Entry Form */}
       {subTab === 'kewangan' && (
         <FinancialAnalytics
           records={financialRecords}
@@ -285,6 +375,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           loading={loadingData}
           error={dataError}
           onRefresh={onRefreshCalendar}
+          onEditRowByNumber={handleOpenEditByRowNumber}
+          onDeleteRowByNumber={handleOpenDeleteByRowNumber}
         />
       )}
 
@@ -509,7 +601,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           <div className="rounded-xl border border-purple-200 bg-purple-50/50 p-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-4">
               <img
-                src="/ss-homestay-logo-v3.jpg"
+                src="/ss-homestay-logo-v5.jpg"
                 alt="Ikon Segi Empat Sama SS Homestay & Roomstay (512x512)"
                 className="h-16 w-16 rounded-xl border border-slate-200 bg-white object-contain p-1 shrink-0"
               />
@@ -574,6 +666,31 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Shared Edit Google Sheet Row Modal */}
+      {editingRow && (
+        <EditSheetRowModal
+          row={editingRow}
+          bookings={bookings}
+          sheetMeta={sheetMeta}
+          onClose={() => setEditingRow(null)}
+          onSuccess={(msg) => onShowToast?.(msg)}
+          onRefresh={onRefreshCalendar}
+          onScriptUpgradeNeeded={handleScriptUpgradeNeeded}
+        />
+      )}
+
+      {/* Shared Delete Google Sheet Row Modal */}
+      {deletingRow && (
+        <DeleteSheetRowModal
+          row={deletingRow}
+          sheetMeta={sheetMeta}
+          onClose={() => setDeletingRow(null)}
+          onSuccess={(msg) => onShowToast?.(msg)}
+          onRefresh={onRefreshCalendar}
+          onScriptUpgradeNeeded={handleScriptUpgradeNeeded}
+        />
       )}
     </div>
   );

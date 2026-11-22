@@ -210,6 +210,14 @@ export const HOMESTAY_PHOTOS = [
     src: 'https://sksi4com.wordpress.com/wp-content/uploads/2026/04/image_9a22e31f.jpg',
     alt: 'Pemandangan Terkini SS Homestay',
   },
+  {
+    src: '/assets/aistudio/e176e22a-c592-4941-85d4-25de5b050592_f6832c45.jpg',
+    alt: 'Bilik Air Moden & Pancuran Mandi SS Homestay',
+  },
+  {
+    src: '/assets/aistudio/27e0db2f-7be1-4752-abbe-88e79a9d22fd_2eee7c3c.jpg',
+    alt: 'Ruang Dapur Lengkap dengan Dapur Gas & Penapis Air',
+  },
 ];
 
 export const ROOMSTAY_PHOTOS = [
@@ -306,17 +314,27 @@ export const TESTIMONIAL_PHOTOS = [
   },
 ];
 
-export const YOUTUBE_VIDEOS = [
+export interface YouTubeVideo {
+  id: string;
+  title: string;
+  embedUrl: string;
+  watchUrl: string;
+  orientation: 'landscape' | 'portrait';
+}
+
+export const YOUTUBE_VIDEOS: YouTubeVideo[] = [
   {
-    id: 'tq5trg7ObvU',
-    title: 'Lawatan Video SS Homestay & Kolam Renang',
-    embedUrl: 'https://www.youtube.com/embed/tq5trg7ObvU',
-    watchUrl: 'https://youtube.com/shorts/tq5trg7ObvU',
+    id: 'pwRoDzCOay8',
+    title: 'Video Paparan SS Homestay & Roomstay',
+    embedUrl: 'https://www.youtube.com/embed/pwRoDzCOay8',
+    watchUrl: 'https://www.youtube.com/watch?v=pwRoDzCOay8',
+    orientation: 'landscape',
   },
   {
-    id: 'eNkWbs19tRs',
-    title: 'Suasana & Kemudahan SS Homestay & Roomstay',
-    embedUrl: 'https://www.youtube.com/embed/eNkWbs19tRs',
-    watchUrl: 'https://youtube.com/shorts/eNkWbs19tRs',
+    id: '_itH2ikrpIY',
+    title: 'Video Ringkas SS Homestay & Roomstay',
+    embedUrl: 'https://www.youtube.com/embed/_itH2ikrpIY',
+    watchUrl: 'https://www.youtube.com/shorts/_itH2ikrpIY',
+    orientation: 'portrait',
   },
 ];
