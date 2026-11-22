@@ -260,12 +260,15 @@ export const WhatsAppShareCard: React.FC = () => {
           </div>
 
           <div className="rounded-lg border border-amber-200 bg-amber-50/70 p-3 text-xs text-amber-900 space-y-1">
-            <p className="font-bold">Cara pastikan logo 100% keluar di WhatsApp:</p>
+            <p className="font-bold">Cara hantar gambar logo bersama pautan:</p>
             <p>
-              1. Klik butang <strong>Deploy</strong> (ikon roket) di AI Studio untuk dapatkan pautan awam <strong>Cloud Run (.run.app)</strong> (tetapkan capaian <em>Public</em>).
+              1. Pastikan URL di atas ialah URL laman awam yang boleh dibuka oleh pelanggan, kemudian tekan <strong>Simpan Tetapan</strong>.
             </p>
             <p>
-              2. Atau tekan butang <strong>Kongsi Logo + Pautan</strong> di sebelah pada telefon anda untuk menghantar gambar logo bersama pautan terus ke WhatsApp serta-merta.
+              2. Pada telefon, tekan <strong>Kongsi Logo + Pautan</strong> dan pilih WhatsApp. Gambar promosi akan dihantar bersama mesej dan URL yang boleh ditekan.
+            </p>
+            <p>
+              Jika hanya mahu kad pratonton pautan, gunakan <strong>Buka di WhatsApp</strong> dan tampal mesej itu dalam chat.
             </p>
           </div>
         </div>
